@@ -318,12 +318,7 @@ tbody td{padding:9px 13px}
 
 <!-- EGRESOS -->
 <div id="s-egr" class="sec">
-  <div class="sh">
-    <h2>🌸 Egresos</h2>
-    <div style="font-size:.76rem;color:var(--texto2);background:var(--amar2);border-radius:8px;padding:7px 11px;border:1px solid var(--amarillo)">
-      ⚡ Egresos = compromisos fijos mensuales. Marcalos ✅ en 💰 Balance cuando los pagás.
-    </div>
-  </div>
+  <div class="sh"><h2>🌸 Egresos</h2></div>
   <div class="g2 mb">
     <div class="card">
       <div class="ctitle">➕ Registrar Egreso</div>
@@ -566,9 +561,6 @@ tbody td{padding:9px 13px}
   <div class="g2 mb">
     <div class="card">
       <div class="ctitle">➕ Nuevo gasto</div>
-      <div style="font-size:.78rem;color:var(--texto2);background:var(--cielo2);border-radius:8px;padding:8px 11px;margin-bottom:11px;border:1px solid var(--cielo)">
-        💡 Usá esta sección para cargar compras del día a día: supermercado, nafta, farmacia, etc. Los pagos de compromisos fijos (renta, préstamo) se marcan en 💰 Balance.
-      </div>
       <div class="fr">
         <div class="fg"><label>Descripción</label><input type="text" id="gdDesc" placeholder="Ej: Woolworths, nafta..."></div>
         <div class="fg" style="max-width:180px"><label>Categoría</label>
@@ -655,12 +647,14 @@ const DFT=()=>({ingresos:[],egresos:[],prestamos:[],metas:[],fuentes:[],fijos:[]
 let db=DFT();
 let fbSynced=false;
 
+let _ignorarProximoSync=false;
 const save=()=>{
   localStorage.setItem(KEY,JSON.stringify(db));
   if(fbDb&&fbSet&&fbRef){
+    _ignorarProximoSync=true; // evitar que onValue pise los datos recién guardados
     fbSet(fbRef(fbDb,FB_PATH),db)
-      .then(()=>setFbStatus('ok'))
-      .catch(()=>setFbStatus('error'));
+      .then(()=>{setFbStatus('ok');})
+      .catch(()=>{setFbStatus('error');_ignorarProximoSync=false;});
   }
 };
 
@@ -677,6 +671,13 @@ function initFirebaseSync(){
   fbOnValue(fbRef(fbDb,FB_PATH),snap=>{
     const val=snap.val();
     if(val){
+      if(_ignorarProximoSync){
+        // Acabamos de hacer save(), este onValue es nuestro propio eco — ignorar
+        _ignorarProximoSync=false;
+        setFbStatus('ok');
+        if(!fbSynced){fbSynced=true;initData();renderAll();}
+        return;
+      }
       db={...DFT(),...val};
       ['ingresos','egresos','prestamos','metas','fuentes','fijos','gastosReales'].forEach(k=>{if(!Array.isArray(db[k]))db[k]=[];});
       localStorage.setItem(KEY,JSON.stringify(db));
@@ -742,11 +743,9 @@ function calcTot(){
   const diezmoFuentes=fuentesMes*(db.config.diezmo/100);
   const ahorroMetas=db.metas.reduce((s,m)=>s+m.semanal,0)*4.33;
   const necTotal=fijosM+diezmoFuentes+ahorroMetas;
-  // Gasto real = gastos cargados en ✏️ Gastos + egresos ya PAGADOS este mes
-  const gastosRealesMes=(db.gastosReales||[]).filter(g=>inMes(g.fecha)).reduce((s,g)=>s+g.monto,0);
-  const egresosPagadosMes=db.egresos.filter(e=>inMes(e.fecha)&&e.estado==='pagado').reduce((s,e)=>s+e.monto,0);
-  const egrsAll=gastosRealesMes+egresosPagadosMes;
-  // Saldo libre = ingresos del mes - lo que YA se gastó/pagó (no incluye pendientes)
+  // Egresos totales incluye diezmo (ya es un egreso real)
+  const egrsAll=db.egresos.reduce((s,e)=>s+e.monto,0);
+  // El diezmo ya está dentro de egrsAll como egreso real, no se resta dos veces
   const saldoLibre=ti-egrsAll;
   const gap=necTotal-fuentesMes;
   return{ti,fuentesMes,fijosM,diezmoReg,diezmoFuentes,ahorroMetas,necTotal,egrsAll,saldoLibre,gap};
@@ -1199,22 +1198,16 @@ function rBalance(){
   const totalPend=pendientes.reduce((s,e)=>s+e.monto,0);
   const totalPag=pagados.reduce((s,e)=>s+e.monto,0);
   const totalMes=egrMes.reduce((s,e)=>s+e.monto,0);
-  const gastosRealesTot=(db.gastosReales||[]).filter(g=>g.fecha&&g.fecha.startsWith(mesActual)).reduce((s,g)=>s+g.monto,0);
-  const disponible=tiM-(totalPag+gastosRealesTot);
+  const disponible=tiM-totalPag;
   const proyectado=tiM-totalMes;
 
   // KPIs
   const totalPlanificado=db.fijos.reduce((s,f)=>s+f.monto,0);
-  const gastosRealesMesB=(db.gastosReales||[]).filter(g=>g.fecha&&g.fecha.startsWith(mesActual)).reduce((s,g)=>s+g.monto,0);
-  const egresosPagadosMesB=pagados.reduce((s,e)=>s+e.monto,0);
-  const gastoRealTotal=gastosRealesMesB+egresosPagadosMesB;
-  const saldoReal=tiM-gastoRealTotal;
-  const porPagarAun=totalPend; // egresos pendientes = compromisos que faltan pagar
   document.getElementById('balKpis').innerHTML=`
-    <div class="kpi v"><div class="klbl">💚 Ingresos cobrados</div><div class="kval">${fmt(tiM)}</div><div class="ksub">este mes</div></div>
-    <div class="kpi l"><div class="klbl">📋 Compromisos mes</div><div class="kval">${fmt(totalPlanificado)}</div><div class="ksub">presupuestado</div></div>
-    <div class="kpi ${saldoReal>=0?'a':'r'}"><div class="klbl">💵 Saldo disponible</div><div class="kval" style="color:${saldoReal>=0?'#2a8a50':'#c03060'}">${fmt(saldoReal)}</div><div class="ksub">ingresos − gastado real</div></div>
-    <div class="kpi ${(saldoReal-porPagarAun)>=0?'c':'r'}"><div class="klbl">${(saldoReal-porPagarAun)>=0?'✅ Sobrará':'⚠️ Faltará'}</div><div class="kval" style="color:${(saldoReal-porPagarAun)>=0?'#1060a0':'#c03060'}">${fmt(Math.abs(saldoReal-porPagarAun))}</div><div class="ksub">si se paga todo pendiente</div></div>`;
+    <div class="kpi v"><div class="klbl">💚 Ingresos mes</div><div class="kval">${fmt(tiM)}</div></div>
+    <div class="kpi l"><div class="klbl">📋 Plan mensual</div><div class="kval">${fmt(totalPlanificado)}</div><div class="ksub">presupuestado</div></div>
+    <div class="kpi ${disponible>=0?'a':'r'}"><div class="klbl">💵 Disponible real</div><div class="kval" style="color:${disponible>=0?'#2a8a50':'#c03060'}">${fmt(disponible)}</div><div class="ksub">ingresos − pagado</div></div>
+    <div class="kpi ${proyectado>=0?'c':'r'}"><div class="klbl">${proyectado>=0?'✅ Superávit proy.':'⚠️ Déficit proy.'}</div><div class="kval" style="color:${proyectado>=0?'#1060a0':'#c03060'}">${fmt(Math.abs(proyectado))}</div><div class="ksub">si se paga todo</div></div>`;
 
   // Barra progreso
   const pct=totalMes>0?Math.min(100,(totalPag/totalMes*100)).toFixed(0):0;
@@ -1323,18 +1316,25 @@ function addGastoReal(){
   const desc=document.getElementById('gdDesc').value.trim();
   const monto=parseFloat(document.getElementById('gdMonto').value);
   if(!desc||!monto||monto<=0){alert('Completá descripción y monto');return;}
-  if(!db.gastosReales) db.gastosReales=[];
-  db.gastosReales.push({
+  if(!Array.isArray(db.gastosReales)) db.gastosReales=[];
+  const nuevoGasto={
     id:uid(),
     desc,
     cat:document.getElementById('gdCat').value,
     monto,
     fecha:document.getElementById('gdFecha').value||hoy(),
     nota:document.getElementById('gdNota').value.trim()
-  });
+  };
+  db.gastosReales.push(nuevoGasto);
   save();
+  // Limpiar solo desc, monto y nota — mantener fecha y categoría para carga rápida
   ['gdDesc','gdMonto','gdNota'].forEach(id=>document.getElementById(id).value='');
-  // Dejar fecha para facilitar carga rápida de múltiples gastos
+  // Confirmación visual sin alert
+  const btn=document.querySelector('#s-gasto .btn.bp');
+  const textoOrig=btn.textContent;
+  btn.textContent='✅ Guardado!';
+  btn.style.background='linear-gradient(135deg,var(--verde),#4aaa78)';
+  setTimeout(()=>{btn.textContent=textoOrig;btn.style.background='';},1500);
   renderAll();
 }
 
@@ -1405,9 +1405,10 @@ function calcPresupuestoCats(){
 }
 
 function rGasto(){
-  if(!db.gastosReales) db.gastosReales=[];
+  if(!Array.isArray(db.gastosReales)) db.gastosReales=[];
   const mes=new Date().toISOString().slice(0,7);
   const gastosM=db.gastosReales.filter(g=>g.fecha&&g.fecha.startsWith(mes));
+  const totalGastadoMes=gastosM.reduce((s,g)=>s+g.monto,0);
   const presupCats=calcPresupuestoCats();
 
   // Saldos por categoría
@@ -1418,27 +1419,27 @@ function rGasto(){
   db.egresos.filter(e=>e.fecha&&e.fecha.startsWith(mes)&&e.estado==='pagado'&&!e.esExtra)
     .forEach(e=>{realPorCat[e.cat]=(realPorCat[e.cat]||0)+e.monto;});
 
-  // Mostrar saldos disponibles
+  // KPI total gastado
   const sDiv=document.getElementById('gdSaldos');
+  // Mostrar total al inicio del panel de saldos
   const todasCats=new Set([...Object.keys(presupCats),...Object.keys(realPorCat)]);
-  let sdHtml='';
+  let sdHtml=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 11px;background:var(--lila2);border-radius:9px;margin-bottom:10px;font-size:.84rem">
+    <span>💰 Total gastado este mes</span>
+    <strong style="color:#c03060">${fmt(totalGastadoMes)}</strong>
+  </div>`;
   todasCats.forEach(cat=>{
     const presup=presupCats[cat]||0;
     const real=realPorCat[cat]||0;
     const saldo=presup-real;
     const pct=presup>0?Math.min(100,(real/presup*100)).toFixed(0):100;
     const color=saldo<0?'#c03060':saldo<presup*0.15?'#e8a800':'#2a8a50';
-    const presupSem=parseFloat((presup/4.33).toFixed(2));
     sdHtml+=`<div class="pw">
       <div class="pl">
-        <span>${CE[cat]||'🎀'} <strong>${cat}</strong></span>
-        <span style="color:${color};font-weight:800">${fmt(saldo)} libre</span>
+        <span>${CE[cat]||'🎀'} ${cat}</span>
+        <span style="color:${color};font-weight:700">${fmt(saldo)} libre</span>
       </div>
       <div class="pb"><div class="pf" style="width:${pct}%;background:${saldo<0?'#e05050':saldo<presup*0.15?'var(--amarillo)':'var(--verde)'}"></div></div>
-      <div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--texto2);margin-top:3px">
-        <span>Gastado ${fmt(real)} de ${fmt(presup)}/mes</span>
-        <span>≈ ${fmt(presupSem)}/sem · ${pct}%</span>
-      </div>
+      <div style="font-size:.7rem;color:var(--texto2);margin-top:2px">Gastado ${fmt(real)} de ${fmt(presup)} · ${pct}%</div>
     </div>`;
   });
   if(!sdHtml) sdHtml='<div style="color:var(--gris3);font-size:.82rem;text-align:center;padding:14px">Configurá fijos en ⚙️ Config para ver presupuestos</div>';
@@ -1509,7 +1510,7 @@ function rDash(){
   document.getElementById('kpis').innerHTML=`
     <div class="kpi v"><div class="klbl">💚 Ing.Registrados</div><div class="kval">${fmt(ti)}</div><div class="ksub">este mes</div></div>
     <div class="kpi r"><div class="klbl">🌸 Compromisos Fijos</div><div class="kval">${fmt(fijosM)}</div><div class="ksub">mensual</div></div>
-    <div class="kpi l"><div class="klbl">🙏 Diezmo pendiente</div><div class="kval">${fmt(db.egresos.filter(e=>e.cat==='diezmo'&&e.estado==='pendiente').reduce((s,e)=>s+e.monto,0))}</div><div class="ksub">${db.config.diezmo}% · click para ver</div></div>
+    <div class="kpi l"><div class="klbl">🙏 Diezmo</div><div class="kval">${fmt(diezmoReg)}</div><div class="ksub">${db.config.diezmo}%</div></div>
     <div class="kpi a"><div class="klbl">⚖️ Saldo Libre</div><div class="kval" style="color:${saldoLibre>=0?'#2a8a50':'#c03060'}">${fmt(saldoLibre)}</div><div class="ksub">ing.−egr.−diezmo</div></div>
     <div class="kpi d"><div class="klbl">🐣 Total Ahorrado</div><div class="kval">${fmt(totAh)}</div><div class="ksub">de ${fmt(totObj)}</div></div>`;
   buildNeedBox('nb1');
@@ -1823,6 +1824,7 @@ function doReset(){localStorage.removeItem(KEY);db=DFT();initData();closeModal()
 // ══════════ INIT ══════════
 load();
 document.querySelectorAll('input[type="date"]').forEach(inp=>{if(!inp.value)inp.value=hoy()});
+if(!db.gastosReales) db.gastosReales=[];
 window._appStart = function(){
   initFirebaseSync();
 };
