@@ -734,9 +734,9 @@ function calcTot(){
   const diezmoFuentes=fuentesMes*(db.config.diezmo/100);
   const ahorroMetas=db.metas.reduce((s,m)=>s+m.semanal,0)*4.33;
   const necTotal=fijosM+diezmoFuentes+ahorroMetas;
-  // Egresos totales incluye diezmo (ya es un egreso real)
-  const egrsAll=db.egresos.reduce((s,e)=>s+e.monto,0);
-  // El diezmo ya está dentro de egrsAll como egreso real, no se resta dos veces
+  // Egresos del mes actual solamente (no acumular de meses anteriores)
+  const egrsAll=db.egresos.filter(e=>inMes(e.fecha)).reduce((s,e)=>s+e.monto,0);
+  // Saldo libre = ingresos del mes - egresos del mes
   const saldoLibre=ti-egrsAll;
   const gap=necTotal-fuentesMes;
   return{ti,fuentesMes,fijosM,diezmoReg,diezmoFuentes,ahorroMetas,necTotal,egrsAll,saldoLibre,gap};
@@ -1259,10 +1259,18 @@ function rBalance(){
   if(!db.gastosReales) db.gastosReales=[];
   const gastosM=db.gastosReales.filter(g=>g.fecha&&g.fecha.startsWith(mesActual));
   const presupCats=calcPresupuestoCats();
+  // Real = gastosReales cargados en ✏️ Gastos + egresos ya pagados del mes
   const realPorCat={};
   gastosM.forEach(g=>{realPorCat[g.cat]=(realPorCat[g.cat]||0)+g.monto;});
-  // También sumar egresos pagados como real
-  pagados.forEach(e=>{realPorCat[e.cat]=(realPorCat[e.cat]||0)+e.monto;});
+  // Sumar egresos pagados al real (renta pagada, préstamo pagado, etc.)
+  // Pero solo si NO hay un gasto real de esa categoría (para no doble contar)
+  // Los egresos pagados son la confirmación real de esos compromisos
+  pagados.filter(e=>!e.esExtra).forEach(e=>{
+    // Si ya hay gastos reales de esa cat, no sumar el egreso (el gasto real es más granular)
+    if(!gastosM.some(g=>g.cat===e.cat)){
+      realPorCat[e.cat]=(realPorCat[e.cat]||0)+e.monto;
+    }
+  });
 
   const todasCats=new Set([...Object.keys(presupCats),...Object.keys(realPorCat)]);
   const totalPresup=Array.from(todasCats).reduce((s,c)=>s+(presupCats[c]||0),0);
@@ -1360,9 +1368,11 @@ function updateGastoReal(id){
 function calcPresupuestoCats(){
   const p={};
   const mes=new Date().toISOString().slice(0,7);
-  // Fuente de presupuesto: los egresos recurrentes del mes (planificados)
+  // Fuente de presupuesto: egresos recurrentes del mes, usando montoBase si existe
+  // (montoBase = monto sin deuda acumulada de meses anteriores)
   db.egresos.filter(e=>e.fecha&&e.fecha.startsWith(mes)&&!e.esExtra).forEach(e=>{
-    p[e.cat]=(p[e.cat]||0)+e.monto;
+    const montoPresup = e.montoBase || e.monto; // usar monto base, no inflado por deuda
+    p[e.cat]=(p[e.cat]||0)+montoPresup;
   });
   // Si no hay egresos del mes cargados, usar fijos como fallback
   if(Object.keys(p).length===0){
@@ -1398,9 +1408,15 @@ function rGasto(){
   // Real = gastosReales del mes + egresos pagados del mes (ambos representan gasto real)
   const realPorCat={};
   gastosM.forEach(g=>{realPorCat[g.cat]=(realPorCat[g.cat]||0)+g.monto;});
-  // Sumar también egresos ya pagados (renta pagada, préstamo pagado, etc.)
+  // Sumar egresos pagados solo si no hay gastosReales de esa categoría
+  // (evitar doble conteo: si cargaste compras de super en Gastos, no sumar el egreso de super)
+  const catConGastosReales=new Set(gastosM.map(g=>g.cat));
   db.egresos.filter(e=>e.fecha&&e.fecha.startsWith(mes)&&e.estado==='pagado'&&!e.esExtra)
-    .forEach(e=>{realPorCat[e.cat]=(realPorCat[e.cat]||0)+e.monto;});
+    .forEach(e=>{
+      if(!catConGastosReales.has(e.cat)){
+        realPorCat[e.cat]=(realPorCat[e.cat]||0)+e.monto;
+      }
+    });
 
   // Mostrar saldos disponibles
   const sDiv=document.getElementById('gdSaldos');
