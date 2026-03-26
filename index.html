@@ -601,20 +601,22 @@ function startSync(){
 
 // ══ PRESUPUESTOS POR DEFECTO — NUNCA SE PIERDEN ══
 const PRESUP_DEFAULT=[
-  {id:'p01',cat:'renta',    monto:3467,freq:'mensual',nota:'A$800/semana x 4.33'},
-  {id:'p02',cat:'super',    monto:1600,freq:'mensual',nota:'Compras semanales'},
-  {id:'p03',cat:'transporte',monto:800,freq:'mensual',nota:''},
-  {id:'p04',cat:'prestamo', monto:1000,freq:'mensual',nota:'Tia Mamu'},
-  {id:'p05',cat:'telefonia',monto:205, freq:'mensual',nota:'Optus'},
-  {id:'p06',cat:'educacion',monto:1800,freq:'mensual',nota:'Pago estudios 1/2'},
-  {id:'p07',cat:'clases',   monto:200, freq:'mensual',nota:'Samu Classes'},
-  {id:'p08',cat:'escuela',  monto:1232,freq:'mensual',nota:'A$3080 c/2.5m prorrateado'},
-  {id:'p09',cat:'firecamp', monto:319, freq:'mensual',nota:''},
-  {id:'p10',cat:'ahorro',   monto:750, freq:'mensual',nota:'Ahorro planificado'},
-  {id:'p11',cat:'varios',   monto:1000,freq:'mensual',nota:''},
+  {id:'p01',cat:'diezmo',    monto:0,   freq:'mensual',nota:'Se calcula sobre ingresos'},
+  {id:'p02',cat:'prestamo',  monto:1000,freq:'mensual',nota:'Tia Mamu'},
+  {id:'p03',cat:'super',     monto:1600,freq:'mensual',nota:'Supermercado'},
+  {id:'p04',cat:'telefonia', monto:205, freq:'mensual',nota:'Optus'},
+  {id:'p05',cat:'transporte',monto:800, freq:'mensual',nota:''},
+  {id:'p06',cat:'ahorro',    monto:750, freq:'mensual',nota:''},
+  {id:'p07',cat:'educacion', monto:1800,freq:'mensual',nota:'Pago 1/2 Estudios'},
+  {id:'p08',cat:'varios',    monto:1000,freq:'mensual',nota:''},
+  {id:'p09',cat:'renta',     monto:3460,freq:'mensual',nota:'RENT'},
+  {id:'p10',cat:'clases',    monto:200, freq:'mensual',nota:'Samu Classes'},
+  {id:'p11',cat:'firecamp',  monto:319, freq:'mensual',nota:'Fire Camp'},
 ];
 function asegurarPresupuestos(){
-  if(!Array.isArray(db.presupuestos)||db.presupuestos.length===0){
+  // Si no hay presupuestos, o si tienen categorías obsoletas (escuela con monto fijo), resetear
+  const tieneEstructuraVieja = Array.isArray(db.presupuestos) && db.presupuestos.some(p=>p.cat==='escuela'&&p.monto>0);
+  if(!Array.isArray(db.presupuestos)||db.presupuestos.length===0||tieneEstructuraVieja){
     db.presupuestos=JSON.parse(JSON.stringify(PRESUP_DEFAULT));
   }
 }
@@ -645,18 +647,18 @@ function init(){
   asegurarPresupuestos();
   if(!Array.isArray(db.presupuestos)||db.presupuestos.length===0){
     db.presupuestos=[
-      {id:uid(),cat:'renta',    monto:3467,freq:'mensual',nota:'A$800/semana × 4.33'},
-      {id:uid(),cat:'super',    monto:1600,freq:'mensual',nota:'Compras semanales'},
-      {id:uid(),cat:'transporte',monto:800,freq:'mensual',nota:''},
-      {id:uid(),cat:'prestamo', monto:1000,freq:'mensual',nota:'Tia Mamu'},
-      {id:uid(),cat:'telefonia',monto:205, freq:'mensual',nota:'Optus'},
-      {id:uid(),cat:'educacion',monto:1800,freq:'mensual',nota:'Pago estudios 1/2'},
-      {id:uid(),cat:'clases',   monto:200, freq:'mensual',nota:'Samu Classes'},
-      {id:uid(),cat:'escuela',  monto:1232,freq:'mensual',nota:'A$3080 c/2.5m prorrateado'},
-      {id:uid(),cat:'firecamp', monto:319, freq:'mensual',nota:''},
-      {id:uid(),cat:'ahorro',   monto:750, freq:'mensual',nota:'Ahorro planificado'},
-      {id:uid(),cat:'varios',   monto:1000,freq:'mensual',nota:''},
-    ];
+    {id:'p01',cat:'diezmo',    monto:0,   freq:'mensual',nota:'Se calcula sobre ingresos'},
+    {id:'p02',cat:'prestamo',  monto:1000,freq:'mensual',nota:'Tia Mamu'},
+    {id:'p03',cat:'super',     monto:1600,freq:'mensual',nota:'Supermercado'},
+    {id:'p04',cat:'telefonia', monto:205, freq:'mensual',nota:'Optus'},
+    {id:'p05',cat:'transporte',monto:800, freq:'mensual',nota:''},
+    {id:'p06',cat:'ahorro',    monto:750, freq:'mensual',nota:''},
+    {id:'p07',cat:'educacion', monto:1800,freq:'mensual',nota:'Pago 1/2 Estudios'},
+    {id:'p08',cat:'varios',    monto:1000,freq:'mensual',nota:''},
+    {id:'p09',cat:'renta',     monto:3460,freq:'mensual',nota:'RENT'},
+    {id:'p10',cat:'clases',    monto:200, freq:'mensual',nota:'Samu Classes'},
+    {id:'p11',cat:'firecamp',  monto:319, freq:'mensual',nota:'Fire Camp'},
+  ];
     save();
   }
   if(db.config.initialized)return;
@@ -690,20 +692,19 @@ function calcCaja(){
 }
 
 function getPresupuestos(){
-  // SIEMPRE devuelve presupuestos — hardcodeados si db está vacío
   if(Array.isArray(db.presupuestos)&&db.presupuestos.length>0) return db.presupuestos;
   return[
-    {id:'p01',cat:'renta',    monto:3467,freq:'mensual',nota:'A$800/semana x 4.33'},
-    {id:'p02',cat:'super',    monto:1600,freq:'mensual',nota:'Compras semanales'},
-    {id:'p03',cat:'transporte',monto:800,freq:'mensual',nota:''},
-    {id:'p04',cat:'prestamo', monto:1000,freq:'mensual',nota:'Tia Mamu'},
-    {id:'p05',cat:'telefonia',monto:205, freq:'mensual',nota:'Optus'},
-    {id:'p06',cat:'educacion',monto:1800,freq:'mensual',nota:'Pago estudios 1/2'},
-    {id:'p07',cat:'clases',   monto:200, freq:'mensual',nota:'Samu Classes'},
-    {id:'p08',cat:'escuela',  monto:1232,freq:'mensual',nota:'A$3080 c/2.5m prorrateado'},
-    {id:'p09',cat:'firecamp', monto:319, freq:'mensual',nota:''},
-    {id:'p10',cat:'ahorro',   monto:750, freq:'mensual',nota:'Ahorro planificado'},
-    {id:'p11',cat:'varios',   monto:1000,freq:'mensual',nota:''},
+    {id:'p01',cat:'diezmo',    monto:0,   freq:'mensual',nota:'Se calcula sobre ingresos'},
+    {id:'p02',cat:'prestamo',  monto:1000,freq:'mensual',nota:'Tia Mamu'},
+    {id:'p03',cat:'super',     monto:1600,freq:'mensual',nota:'Supermercado'},
+    {id:'p04',cat:'telefonia', monto:205, freq:'mensual',nota:'Optus'},
+    {id:'p05',cat:'transporte',monto:800, freq:'mensual',nota:''},
+    {id:'p06',cat:'ahorro',    monto:750, freq:'mensual',nota:''},
+    {id:'p07',cat:'educacion', monto:1800,freq:'mensual',nota:'Pago 1/2 Estudios'},
+    {id:'p08',cat:'varios',    monto:1000,freq:'mensual',nota:''},
+    {id:'p09',cat:'renta',     monto:3460,freq:'mensual',nota:'RENT'},
+    {id:'p10',cat:'clases',    monto:200, freq:'mensual',nota:'Samu Classes'},
+    {id:'p11',cat:'firecamp',  monto:319, freq:'mensual',nota:'Fire Camp'},
   ];
 }
 function calcPresupCats(){
@@ -1069,6 +1070,7 @@ function rHoy(){
   const fecha=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('hoyFecha').textContent=fecha;
 
+  const totalTC=db.gastos.filter(g=>inMesActual(g.fecha)&&g.medio==='tc').reduce((s,g)=>s+g.monto,0);
   // KPIs
   document.getElementById('hoyKpis').innerHTML=`
     <div class="kcard green"><div class="kl">💚 Cobrado mes</div><div class="kv">${fmt(totalIng)}</div><div class="ks">ingresos registrados</div></div>
@@ -1077,7 +1079,6 @@ function rHoy(){
     <div class="kcard ${bal>=0?'blue':'amber'}"><div class="kl">${bal>=0?'✅ Va a sobrar':'⚠️ Va a faltar'}</div><div class="kv">${fmt(Math.abs(bal))}</div><div class="ks">si se paga todo el presup.</div></div>
     ${totalTC>0?`<div class="kcard purple"><div class="kl">💳 Gastado con TC</div><div class="kv">${fmt(totalTC)}</div><div class="ks">incluido en gastos</div></div>`:''}`;
 
-  const totalTC=db.gastos.filter(g=>inMesActual(g.fecha)&&g.medio==='tc').reduce((s,g)=>s+g.monto,0);
   // Alerta
   const alertDiv=document.getElementById('hoyAlerta');
   if(bal<0){
@@ -1292,4 +1293,3 @@ if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').cat
 </script>
 </body>
 </html>
-         
