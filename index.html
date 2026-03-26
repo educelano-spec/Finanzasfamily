@@ -689,13 +689,30 @@ function calcCaja(){
   return{totalIng,totalGas,caja:totalIng-totalGas};
 }
 
+function getPresupuestos(){
+  // SIEMPRE devuelve presupuestos — hardcodeados si db está vacío
+  if(Array.isArray(db.presupuestos)&&db.presupuestos.length>0) return db.presupuestos;
+  return[
+    {id:'p01',cat:'renta',    monto:3467,freq:'mensual',nota:'A$800/semana x 4.33'},
+    {id:'p02',cat:'super',    monto:1600,freq:'mensual',nota:'Compras semanales'},
+    {id:'p03',cat:'transporte',monto:800,freq:'mensual',nota:''},
+    {id:'p04',cat:'prestamo', monto:1000,freq:'mensual',nota:'Tia Mamu'},
+    {id:'p05',cat:'telefonia',monto:205, freq:'mensual',nota:'Optus'},
+    {id:'p06',cat:'educacion',monto:1800,freq:'mensual',nota:'Pago estudios 1/2'},
+    {id:'p07',cat:'clases',   monto:200, freq:'mensual',nota:'Samu Classes'},
+    {id:'p08',cat:'escuela',  monto:1232,freq:'mensual',nota:'A$3080 c/2.5m prorrateado'},
+    {id:'p09',cat:'firecamp', monto:319, freq:'mensual',nota:''},
+    {id:'p10',cat:'ahorro',   monto:750, freq:'mensual',nota:'Ahorro planificado'},
+    {id:'p11',cat:'varios',   monto:1000,freq:'mensual',nota:''},
+  ];
+}
 function calcPresupCats(){
   const mes=db.config.mesPeriodo||mesActual();
   const gastoPorCat={};
   db.gastos.filter(g=>inMesActual(g.fecha)).forEach(g=>{
     gastoPorCat[g.cat]=(gastoPorCat[g.cat]||0)+g.monto;
   });
-  return db.presupuestos.map(p=>{
+  return getPresupuestos().map(p=>{
     const gastado=gastoPorCat[p.cat]||0;
     const saldo=p.monto-gastado;
     const pct=p.monto>0?Math.min(100,(gastado/p.monto*100)):0;
@@ -704,7 +721,7 @@ function calcPresupCats(){
 }
 
 function totalPresupMes(){
-  return db.presupuestos.reduce((s,p)=>s+p.monto,0);
+  return getPresupuestos().reduce((s,p)=>s+p.monto,0);
 }
 
 // ══════════════════════════════════════════
@@ -1073,6 +1090,7 @@ function rHoy(){
   }
 
   // Por pagar
+  if(!Array.isArray(db.presupuestos)||db.presupuestos.length===0) db.presupuestos=getPresupuestos();
   const cats=calcPresupCats();
   const pendDiv=document.getElementById('hoyPendientes');
   const conSaldo=cats.filter(c=>c.saldo>0).sort((a,b)=>b.saldo-a.saldo);
@@ -1136,6 +1154,8 @@ function rTabMov(){
 }
 
 function rPresup(){
+  // Asegurar que db.presupuestos tenga datos antes de renderizar
+  if(!Array.isArray(db.presupuestos)||db.presupuestos.length===0) db.presupuestos=getPresupuestos();
   const cats=calcPresupCats();
   const{totalGas}=calcCaja();
   const presupTotal=totalPresupMes();
@@ -1161,7 +1181,7 @@ function rPresup(){
 
   // Lista editable
   const listaDiv=document.getElementById('presupLista');
-  listaDiv.innerHTML=cats.length?cats.map(c=>`
+  listaDiv.innerHTML=getPresupuestos().length?cats.map(c=>`
     <div class="li">
       <span class="li-dot" style="background:var(--accent)"></span>
       <div class="li-body"><strong>${CE[c.cat]||'🎀'} ${CNOMBRE[c.cat]}</strong><small>${c.nota||c.freq} · ${fmt(c.monto/4.33)}/sem equiv.</small></div>
