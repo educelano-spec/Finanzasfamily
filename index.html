@@ -1607,63 +1607,60 @@ function rAhorro(){
 
 
 function rDetalle(){
-  const{totalIng,totalGas,caja}=calcCaja();
+  const{totalIng,totalGas}=calcCaja();
   const presupTotal=totalPresupMes();
   const cats=calcPresupCats();
   const diezmoMes=db.gastos.filter(g=>inMesActual(g.fecha)&&g.cat==='diezmo').reduce((s,g)=>s+g.monto,0);
-  const totalGasReal=totalGas; // sin diezmo
 
-  // Resumen top
-  document.getElementById('detalleResumen').innerHTML=`
-    <div class="kcard green"><div class="kl">💚 Total ingresos</div><div class="kv">${fmt(totalIng)}</div><div class="ks">cobrados este mes</div></div>
-    <div class="kcard purple"><div class="kl">📋 Total presupuestado</div><div class="kv">${fmt(presupTotal)}</div><div class="ks">fijos + diezmo</div></div>
-    <div class="kcard red"><div class="kl">💸 Total gastado real</div><div class="kv">${fmt(totalGasReal)}</div><div class="ks">sin diezmo</div></div>
-    <div class="kcard ${totalIng-presupTotal>=0?'blue':'amber'}"><div class="kl">${totalIng-presupTotal>=0?'✅ Superávit':'⚠️ Déficit'}</div><div class="kv">${fmt(Math.abs(totalIng-presupTotal))}</div><div class="ks">ingresos vs presupuesto</div></div>`;
+  document.getElementById('detalleResumen').innerHTML=
+    '<div class="kcard green"><div class="kl">💚 Total ingresos</div><div class="kv">'+fmt(totalIng)+'</div><div class="ks">cobrados este mes</div></div>'+
+    '<div class="kcard purple"><div class="kl">📋 Total presupuestado</div><div class="kv">'+fmt(presupTotal)+'</div><div class="ks">fijos + diezmo</div></div>'+
+    '<div class="kcard red"><div class="kl">💸 Total gastado real</div><div class="kv">'+fmt(totalGas)+'</div><div class="ks">sin diezmo</div></div>'+
+    '<div class="kcard '+(totalIng-presupTotal>=0?'blue':'amber')+'"><div class="kl">'+(totalIng-presupTotal>=0?'✅ Superávit':'⚠️ Déficit')+'</div><div class="kv">'+fmt(Math.abs(totalIng-presupTotal))+'</div><div class="ks">ingresos vs presupuesto</div></div>';
 
-  // Lista por categoría
-  const lista=document.getElementById('detalleLista');
-  const rows=[...cats.filter(c=>c.monto>0||c.gastado>0)];
-
-  // Agregar diezmo como fila especial
-  if(diezmoMes>0){
-    rows.push({cat:'diezmo',nombre:'Diezmo',emoji:'🙏',monto:diezmoMes,gastado:diezmoMes,saldo:0,pct:100,freq:'dinamico'});
-  }
-
-  // Ordenar por presupuestado desc
+  const rows=[...cats.filter(r=>r.monto>0||r.gastado>0)];
+  if(diezmoMes>0) rows.push({cat:'diezmo',nombre:'Diezmo',emoji:'🙏',monto:diezmoMes,gastado:diezmoMes,saldo:0,pct:100,freq:'dinamico'});
   rows.sort((a,b)=>b.monto-a.monto);
 
-  lista.innerHTML=rows.map(r=>{
+  const freqLabel={mensual:'Mensual',semanal:'Semanal',quincenal:'Quincenal',cada25m:'Cada 2.5m',unico:'Único'};
+  const lista=document.getElementById('detalleLista');
+  if(!rows.length){lista.innerHTML='<div class="empty"><div class="empty-icon">📋</div>Sin categorías configuradas</div>';return;}
+
+  lista.innerHTML='';
+  rows.forEach(function(r){
     const pct=r.monto>0?Math.min(100,(r.gastado/r.monto*100)):0;
     const barColor=pct>=100?'var(--red)':pct>80?'var(--amber)':'var(--accent)';
     const emoji=r.emoji||getCatEmoji(r.cat);
     const label=r.nombre||getCatLabel(r.cat);
     const isDiezmo=r.cat==='diezmo';
-    return`<div class="card" style="margin-bottom:8px;cursor:${isDiezmo?'default':'pointer'}" ${isDiezmo?'':'onclick="showCatModal(''+r.cat+'')"'}>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:1.1rem">${emoji}</span>
-          <strong style="font-size:.88rem">${label}</strong>
-          ${isDiezmo?'<span class="tag tag-purple" style="font-size:.65rem">dinámico</span>':''}
-        </div>
-        <div style="display:flex;gap:10px;font-size:.8rem;text-align:right">
-          <div><div style="color:var(--ink3);font-size:.68rem">PRESUP.</div><strong>${fmt(r.monto)}</strong></div>
-          <div><div style="color:var(--ink3);font-size:.68rem">GASTADO</div><strong style="color:${r.gastado>r.monto?'var(--red)':'var(--ink)'}">${fmt(r.gastado)}</strong></div>
-          <div><div style="color:var(--ink3);font-size:.68rem">${r.saldo>=0?'LIBRE':'EXCEDIDO'}</div><strong style="color:${r.saldo<0?'var(--red)':r.saldo===0?'var(--ink3)':'var(--green)'}">${fmt(Math.abs(r.saldo))}</strong></div>
-        </div>
-      </div>
-      <div style="height:7px;background:var(--paper3);border-radius:4px;overflow:hidden">
-        <div style="height:100%;width:${pct.toFixed(1)}%;background:${barColor};border-radius:4px;transition:width .5s"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--ink3);margin-top:3px">
-        <span>${isDiezmo?'10% de ingresos · se acumula al cobrar':(r.freq?({mensual:'Mensual',semanal:'Semanal',quincenal:'Quincenal',cada25m:'Cada 2.5m',unico:'Único'}[r.freq]||r.freq):'')}</span>
-        <span>${pct.toFixed(0)}% ejecutado</span>
-      </div>
-    </div>`;
-  }).join('');
-
-  // Si no hay nada
-  if(!rows.length) lista.innerHTML='<div class="empty"><div class="empty-icon">📋</div>Sin categorías configuradas</div>';
+    const div=document.createElement('div');
+    div.className='card';
+    div.style.cssText='margin-bottom:8px'+(isDiezmo?'':';cursor:pointer');
+    if(!isDiezmo) div.onclick=function(){showCatModal(r.cat);};
+    div.innerHTML=
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+        '<div style="display:flex;align-items:center;gap:6px">'+
+          '<span style="font-size:1.1rem">'+emoji+'</span>'+
+          '<strong style="font-size:.88rem">'+label+'</strong>'+
+          (isDiezmo?'<span class="tag tag-purple" style="font-size:.65rem">dinámico</span>':'')+
+        '</div>'+
+        '<div style="display:flex;gap:10px;font-size:.8rem;text-align:right">'+
+          '<div><div style="color:var(--ink3);font-size:.68rem">PRESUP.</div><strong>'+fmt(r.monto)+'</strong></div>'+
+          '<div><div style="color:var(--ink3);font-size:.68rem">GASTADO</div><strong style="color:'+(r.gastado>r.monto?'var(--red)':'var(--ink)')+'">'+fmt(r.gastado)+'</strong></div>'+
+          '<div><div style="color:var(--ink3);font-size:.68rem">'+(r.saldo>=0?'LIBRE':'EXCEDIDO')+'</div><strong style="color:'+(r.saldo<0?'var(--red)':r.saldo===0?'var(--ink3)':'var(--green)')+'">'+fmt(Math.abs(r.saldo))+'</strong></div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="height:7px;background:var(--paper3);border-radius:4px;overflow:hidden">'+
+        '<div style="height:100%;width:'+pct.toFixed(1)+'%;background:'+barColor+';border-radius:4px;transition:width .5s"></div>'+
+      '</div>'+
+      '<div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--ink3);margin-top:3px">'+
+        '<span>'+(isDiezmo?'10% de ingresos · se acumula al cobrar':(freqLabel[r.freq]||r.freq||''))+'</span>'+
+        '<span>'+pct.toFixed(0)+'% ejecutado</span>'+
+      '</div>';
+    lista.appendChild(div);
+  });
 }
+
 
 function rCierre(){
   const{totalIng,totalGas,caja}=calcCaja();
