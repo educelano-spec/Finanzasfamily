@@ -1478,7 +1478,7 @@ function rHoy(){
         }
       }
       const barColor=c.pct>=100?'var(--red)':c.pct>80?'var(--amber)':'var(--green)';
-      pendDiv.innerHTML+=`<div style="padding:10px 12px;border-radius:9px;background:var(--paper);border:1px solid var(--border);margin-bottom:5px;cursor:pointer" onclick="showCatModal('${c.cat}')">
+      pendDiv.innerHTML+=`<div style="padding:10px 12px;border-radius:9px;background:var(--paper);border:1px solid var(--border);margin-bottom:5px;cursor:pointer" onclick="showCatModal(this.dataset.cat)" data-cat="${c.cat}">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
           <div><strong style="font-size:.84rem">${getCatEmoji(c.cat)} ${getCatLabel(c.cat)}${cuotasTxt}</strong></div>
           <div style="display:flex;align-items:center;gap:6px">
@@ -1715,7 +1715,7 @@ function rCierre(){
   const medDiv=document.getElementById('cierreMedios');
   if(medDiv){
     const gasRows=Object.entries(gastosPorMedio).sort((a,b)=>b[1]-a[1]).map(([m,v])=>
-      `<div class="li" style="cursor:pointer" onclick="showMedioModal('gas','${`${m}`}')">
+      `<div class="li" style="cursor:pointer" data-medio="${m}" onclick="showMedioModal('gas',this.dataset.medio)">
         <span class="li-dot" style="background:var(--red)"></span>
         <div class="li-body"><strong>${medioMap[m]||m}</strong><small>gastos · toca para ver detalle</small></div>
         <div class="li-amount neg">−${fmt(v)}</div>
