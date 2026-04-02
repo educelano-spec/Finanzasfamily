@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Credit Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f2f4f8; --surface:#fff; --surface2:#eef0f5; --border:#dde1ea;
+  --accent:#2563eb; --danger:#dc2626; --success:#16a34a; --warn:#d97706;
+  --text:#111827; --muted:#6b7280; --card-w:330px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;font-size:14px;}
+
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;gap:16px;height:56px;position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+header h1{font-family:'Bebas Neue';font-size:26px;letter-spacing:3px;color:var(--text);}
+.tabs{display:flex;gap:2px;margin-left:auto;flex-wrap:wrap;}
+.tab{padding:6px 14px;border-radius:6px;border:none;background:transparent;color:var(--muted);font-family:'DM Sans';font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;position:relative;}
+.tab.active{background:var(--text);color:#fff;}
+.tab:hover:not(.active){background:var(--surface2);color:var(--text);}
+.alert-dot{position:absolute;top:4px;right:4px;width:7px;height:7px;background:var(--danger);border-radius:50%;border:1px solid #fff;display:none;}
+
+.page{display:none;padding:22px 28px;max-width:1600px;margin:0 auto;}
+.page.active{display:block;}
+
+/* SUMMARY */
+.summary-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-bottom:20px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 15px;}
+.stat-card .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px;}
+.stat-card .val{font-family:'JetBrains Mono';font-size:17px;font-weight:600;letter-spacing:-.3px;}
+.stat-card .sub{font-size:10px;color:var(--muted);margin-top:2px;}
+.red{color:var(--danger);}.green{color:var(--success);}.yellow{color:var(--warn);}.blue{color:var(--accent);}
+
+/* CARDS */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--card-w),1fr));gap:14px;}
+.tc-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:box-shadow .15s;}
+.tc-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+.card-header{padding:11px 15px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);}
+.card-header .cname{font-family:'Bebas Neue';font-size:16px;letter-spacing:.4px;}
+.card-header .crate{font-family:'JetBrains Mono';font-size:10px;font-weight:600;background:var(--surface2);padding:2px 7px;border-radius:20px;color:var(--warn);}
+.card-body{padding:11px 15px;}
+.kv{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.kv .k{color:var(--muted);font-size:12px;}
+.kv .v{font-family:'JetBrains Mono';font-size:12px;}
+.prog-wrap{margin:8px 0 5px;}
+.prog-lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px;}
+.prog-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:3px;}
+.gastos-list{margin-top:7px;padding-top:7px;border-top:1px solid var(--border);}
+.gi{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px;}
+.dates-row{margin-top:7px;padding-top:7px;border-top:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap;}
+.dbadge{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--muted);}
+.dbadge.dr{background:#fef2f2;color:var(--danger);font-weight:600;}
+.dbadge.dy{background:#fffbeb;color:var(--warn);font-weight:600;}
+.card-actions{display:flex;gap:6px;margin-top:9px;padding-top:9px;border-top:1px solid var(--border);}
+.btn-sm{flex:1;padding:5px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;font-family:'DM Sans';transition:all .15s;}
+.btn-sm:hover{background:var(--surface2);color:var(--text);border-color:var(--text);}
+.btn-sm.pay-btn{background:#eff6ff;border-color:#bfdbfe;color:var(--accent);font-weight:600;}
+.btn-sm.pay-btn:hover{background:#dbeafe;border-color:var(--accent);}
+.add-card-btn{background:var(--surface);border:2px dashed var(--border);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:40px;cursor:pointer;color:var(--muted);transition:all .2s;font-size:13px;min-height:180px;}
+.add-card-btn:hover{border-color:var(--accent);color:var(--accent);}
+.add-card-btn .plus{font-size:32px;line-height:1;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:540px;max-width:96vw;max-height:92vh;overflow-y:auto;padding:24px;animation:slideUp .2s ease;}
+@keyframes slideUp{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+.modal h2{font-family:'Bebas Neue';font-size:22px;letter-spacing:1px;margin-bottom:16px;}
+.fg{margin-bottom:11px;}
+.fg label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;font-weight:500;}
+.fg input,.fg select{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 11px;font-family:'DM Sans';font-size:14px;}
+.fg input:focus,.fg select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.08);}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.frow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.msec{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:600;margin:14px 0 8px;padding-top:12px;border-top:1px solid var(--border);}
+.mactions{display:flex;gap:10px;margin-top:16px;}
+.btn-p{flex:1;padding:10px;background:var(--text);color:#fff;border:none;border-radius:7px;font-family:'DM Sans';font-weight:600;font-size:14px;cursor:pointer;transition:opacity .15s;}
+.btn-p:hover{opacity:.85;}
+.btn-c{padding:10px 18px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:7px;font-family:'DM Sans';font-size:14px;cursor:pointer;}
+.btn-c:hover{color:var(--text);border-color:var(--text);}
+.gml{margin-top:5px;}
+.gmi{display:flex;gap:7px;align-items:center;margin-bottom:5px;}
+.gmi input{flex:1;}
+.gmi .rm{background:none;border:none;color:var(--danger);cursor:pointer;font-size:18px;line-height:1;padding:0;}
+.btn-link{background:none;border:none;color:var(--accent);font-family:'DM Sans';font-size:12px;cursor:pointer;text-decoration:underline;padding:3px 0;}
+
+/* PAY MODAL */
+.pay-card-row{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;}
+.pay-card-name{font-weight:600;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.pay-card-info{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-bottom:8px;flex-wrap:wrap;}
+.pay-input-row{display:flex;align-items:center;gap:8px;}
+.pay-input-row label{font-size:11px;color:var(--muted);white-space:nowrap;}
+.pay-input-row input{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'JetBrains Mono';font-size:13px;}
+.pay-input-row input:focus{outline:none;border-color:var(--accent);}
+.pay-min-warn{font-size:10px;color:var(--danger);margin-top:4px;}
+.pay-total-bar{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.pay-total-bar .ptl{font-size:12px;color:var(--muted);}
+.pay-total-bar .ptv{font-family:'JetBrains Mono';font-size:16px;font-weight:700;}
+.btn-pay-confirm{width:100%;padding:12px;background:var(--success);color:#fff;border:none;border-radius:8px;font-family:'DM Sans';font-weight:700;font-size:15px;cursor:pointer;transition:opacity .15s;margin-top:8px;}
+.btn-pay-confirm:hover{opacity:.88;}
+
+/* SECTION TITLE */
+.section-title{font-family:'Bebas Neue';font-size:20px;letter-spacing:1.5px;margin-bottom:14px;}
+
+/* STRATEGY */
+.budget-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:15px 18px;margin-bottom:16px;display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;}
+.budget-panel .fg{margin:0;flex:1;min-width:160px;}
+.strat-compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:8px;margin-bottom:16px;}
+.sc-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 13px;cursor:pointer;transition:border-color .15s;}
+.sc-card:hover{border-color:var(--accent);}
+.sc-card.best{border-color:var(--success);background:#f0fdf4;}
+.sc-name{font-weight:600;font-size:12px;margin-bottom:4px;}
+.sc-int{font-family:'JetBrains Mono';font-size:13px;color:var(--danger);}
+.sc-mo{font-size:11px;color:var(--muted);margin-top:2px;}
+.sc-best{font-size:10px;color:var(--success);font-weight:700;margin-top:4px;}
+.strat-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:13px;}
+.strat-tab{padding:6px 14px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans';font-size:12px;cursor:pointer;transition:all .15s;}
+.strat-tab.active{background:var(--text);color:#fff;border-color:var(--text);font-weight:600;}
+.strat-tab:hover:not(.active){border-color:var(--muted);color:var(--text);}
+.strat-desc{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;font-size:13px;color:#1e40af;margin-bottom:13px;line-height:1.6;}
+.strat-desc strong{color:#1d4ed8;}
+.note-box{background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:13px;line-height:1.6;}
+
+/* TABLE */
+.plan-table-wrap{overflow-x:auto;}
+table.ptable{width:100%;border-collapse:collapse;}
+table.ptable th{background:var(--surface2);color:var(--muted);font-weight:500;font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding:8px 11px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+table.ptable td{padding:8px 11px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono';font-size:11px;white-space:nowrap;}
+table.ptable tr:hover td{background:var(--surface2);}
+table.ptable td.nc{font-family:'DM Sans';font-size:13px;font-weight:500;color:var(--text);}
+.bdg{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-family:'DM Sans';font-weight:600;}
+.bg{background:#dcfce7;color:#15803d;}.by{background:#fef9c3;color:#a16207;}.br{background:#fee2e2;color:#b91c1c;}
+.info-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:9px;flex-wrap:wrap;}
+
+/* SIMULATOR */
+.sim-layout{display:grid;grid-template-columns:310px 1fr;gap:18px;}
+@media(max-width:900px){.sim-layout{grid-template-columns:1fr;}}
+.sim-ctrl{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:17px;}
+.sim-ctrl h3{font-family:'Bebas Neue';font-size:17px;letter-spacing:.5px;margin-bottom:13px;}
+.sl-row{margin-bottom:13px;}
+.sl-lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;}
+.sl-val{font-family:'JetBrains Mono';font-size:14px;color:var(--text);font-weight:600;text-transform:none;letter-spacing:0;}
+input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
+.sug-box{border-radius:8px;padding:12px;margin-top:13px;font-size:12px;line-height:1.6;}
+.sug-box.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;}
+.sug-box.warn{background:#fff7ed;border:1px solid #fed7aa;color:#92400e;}
+.sug-box h4{font-weight:700;margin-bottom:5px;font-size:12px;}
+.sim-tbl-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px;}
+.sim-tbl-box table{width:100%;border-collapse:collapse;}
+.sim-tbl-box th{background:var(--surface2);color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding:8px 11px;text-align:left;border-bottom:1px solid var(--border);}
+.sim-tbl-box td{padding:8px 11px;border-bottom:1px solid var(--border);font-size:12px;}
+.sim-tbl-box td:not(:first-child){font-family:'JetBrains Mono';font-size:11px;}
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:15px;}
+.chart-box h4{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:11px;}
+.chart-bars{display:flex;align-items:flex-end;gap:2px;height:100px;}
+.bw{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;height:100%;}
+.bf{width:100%;border-radius:3px 3px 0 0;min-height:2px;}
+.bl{font-size:8px;color:var(--muted);white-space:nowrap;}
+
+/* PROJECTION */
+.proj-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin-bottom:16px;}
+.proj-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px;text-align:center;}
+.proj-card .pval{font-family:'JetBrains Mono';font-size:18px;font-weight:600;margin-bottom:3px;}
+.proj-card .plbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+.tl-row{display:flex;margin-bottom:3px;align-items:center;}
+.tl-lbl{min-width:155px;font-size:11px;color:var(--muted);padding-right:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;}
+.tl-bars{flex:1;display:flex;height:22px;border-radius:4px;overflow:hidden;border:1px solid var(--border);}
+.tl-seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:9px;color:rgba(255,255,255,.8);overflow:hidden;}
+
+/* ALERTS */
+.al-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;border-left:3px solid var(--border);}
+.al-item.urgent{border-left-color:var(--danger);}
+.al-item.warning{border-left-color:var(--warn);}
+.al-item.ok{border-left-color:var(--success);}
+.al-icon{font-size:20px;flex-shrink:0;}
+.al-title{font-weight:600;font-size:13px;margin-bottom:2px;}
+.al-sub{font-size:12px;color:var(--muted);}
+
+/* MISC */
+.cdot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:5px;flex-shrink:0;}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--text);color:#fff;border-radius:8px;padding:10px 18px;font-size:13px;z-index:300;transform:translateY(60px);opacity:0;transition:all .3s;pointer-events:none;}
+.toast.show{transform:none;opacity:1;}
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty-state .icon{font-size:44px;margin-bottom:12px;}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:#bbb}
+
+/* monthly projection table inside card */
+.month-proj{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);background:#fffbeb;border-radius:6px;padding:8px 10px;margin-top:8px;}
+.month-proj-title{font-size:10px;font-weight:600;color:var(--warn);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+.mp-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;}
+.mp-row .mpk{color:var(--muted);}
+.mp-row .mpv{font-family:'JetBrains Mono';font-size:11px;}
+.mp-total{display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-top:4px;padding-top:4px;border-top:1px solid #fcd34d;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>💳 CREDIT CONTROL</h1>
+  <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);">
+    <span id="conn-dot" style="width:8px;height:8px;border-radius:50%;background:var(--warn);flex-shrink:0;transition:background .3s;"></span>
+    <span id="conn-lbl">Conectando...</span>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showPage('dashboard',this)">Dashboard</button>
+    <button class="tab" onclick="showPage('strategy',this)">Estrategia</button>
+    <button class="tab" onclick="showPage('simulator',this)">Simulador</button>
+    <button class="tab" onclick="showPage('projection',this)">Proyección</button>
+    <button class="tab" onclick="showPage('alerts',this)">Alertas <span class="alert-dot" id="alert-dot"></span></button>
+  </div>
+</header>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+    <button class="btn-sm pay-btn" style="flex:none;padding:8px 18px;font-size:13px;" onclick="openPayModal()">💳 Registrar Pagos</button>
+  </div>
+  <div class="summary-bar" id="summary-bar"></div>
+  <div class="cards-grid" id="cards-grid"></div>
+</div>
+
+<!-- STRATEGY -->
+<div class="page" id="page-strategy">
+  <div class="section-title">Estrategia de Pago</div>
+  <div class="note-box">ℹ️ <strong>TAN vs TAE:</strong> Usá siempre la <strong>TAN (Tasa Anual Nominal)</strong>. La TAE incluye comisiones y fees que ya están cargados como gastos fijos en cada tarjeta. Usar TAE + gastos fijos duplicaría costos.</div>
+  <div class="budget-panel">
+    <div class="fg">
+      <label>Presupuesto mensual total (PYG)</label>
+      <input type="text" inputmode="numeric" id="budget-input" placeholder="Ej: 5.380.000" oninput="fmtModalInput(this);onBudgetChange()">
+    </div>
+  </div>
+  <div class="section-title" style="font-size:14px;margin-bottom:10px;">Comparación de estrategias</div>
+  <div class="strat-compare" id="strat-compare"></div>
+  <div class="strat-tabs">
+    <button class="strat-tab active" data-s="avalanche" onclick="setStrat('avalanche',this)">🔥 Avalanche</button>
+    <button class="strat-tab" data-s="snowball" onclick="setStrat('snowball',this)">⛄ Snowball</button>
+    <button class="strat-tab" data-s="hybrid" onclick="setStrat('hybrid',this)">⚖️ Hybrid</button>
+    <button class="strat-tab" data-s="proportional" onclick="setStrat('proportional',this)">📊 Proporcional</button>
+  </div>
+  <div class="strat-desc" id="strat-desc"></div>
+  <div class="plan-table-wrap" id="plan-table-wrap"></div>
+</div>
+
+<!-- SIMULATOR -->
+<div class="page" id="page-simulator">
+  <div class="section-title">Simulador de Pagos</div>
+  <div class="sim-layout">
+    <div class="sim-ctrl">
+      <h3>Parámetros</h3>
+      <div class="sl-row">
+        <div class="sl-lbl">Pago mensual total <span class="sl-val" id="sim-val">—</span></div>
+        <input type="range" id="sim-slider" min="1000000" max="20000000" step="100000" oninput="renderSim()">
+      </div>
+      <div class="fg" style="margin-top:8px;">
+        <label>Estrategia</label>
+        <select id="sim-strat" onchange="renderSim()" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 10px;font-family:'DM Sans';font-size:13px;">
+          <option value="avalanche">🔥 Avalanche (mayor tasa)</option>
+          <option value="snowball">⛄ Snowball (menor deuda)</option>
+          <option value="hybrid">⚖️ Hybrid (más interés absoluto)</option>
+          <option value="proportional">📊 Proporcional</option>
+        </select>
+      </div>
+      <div id="sim-sug"></div>
+    </div>
+    <div>
+      <div class="sim-tbl-box" id="sim-table"></div>
+      <div class="chart-box">
+        <h4>Deuda total restante mes a mes</h4>
+        <div class="chart-bars" id="sim-chart"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROJECTION -->
+<div class="page" id="page-projection">
+  <div class="section-title">Proyección Completa</div>
+  <div class="proj-summary" id="proj-summary"></div>
+  <div class="section-title" style="font-size:14px;margin-bottom:8px;">Cuándo se cancela cada tarjeta</div>
+  <div id="timeline-wrap" style="margin-bottom:18px;"></div>
+  <div class="section-title" style="font-size:14px;margin-bottom:8px;">Deuda restante mes a mes</div>
+  <div class="plan-table-wrap" id="month-table"></div>
+</div>
+
+<!-- ALERTS -->
+<div class="page" id="page-alerts">
+  <div class="section-title">Alertas y Vencimientos</div>
+  <div id="alerts-list"></div>
+</div>
+
+<!-- MODAL: ADD/EDIT CARD -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOuter(event)">
+  <div class="modal">
+    <h2 id="modal-title">Nueva Tarjeta</h2>
+    <div class="frow">
+      <div class="fg"><label>Nombre / Banco</label><input type="text" id="f-name" placeholder="Ej: TC Continental EDU"></div>
+      <div class="fg"><label>Color</label><input type="color" id="f-color" value="#2563eb" style="height:36px;padding:3px 5px;"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>Línea de Crédito</label><input type="text" inputmode="numeric" id="f-limit" placeholder="Ej: 12.100.000" oninput="fmtModalInput(this)"></div>
+      <div class="fg"><label>Deuda Actual</label><input type="text" inputmode="numeric" id="f-debt" placeholder="Ej: 13.021.488" oninput="fmtModalInput(this)"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>TAN Anual (%)</label><input type="text" inputmode="decimal" id="f-rate" placeholder="Ej: 16,80"></div>
+      <div class="fg"><label>Moneda</label>
+        <select id="f-currency"><option value="PYG">PYG</option><option value="AUD">AUD</option><option value="USD">USD</option></select>
+      </div>
+    </div>
+    <div class="msec">Fechas y Pagos</div>
+    <div class="frow3">
+      <div class="fg"><label>Día de Cierre</label><input type="number" id="f-close-day" placeholder="Ej: 15" min="1" max="31"></div>
+      <div class="fg"><label>Día de Vencimiento</label><input type="number" id="f-due-day" placeholder="Ej: 5" min="1" max="31"></div>
+      <div class="fg"><label>Pago Mínimo Mensual</label><input type="text" inputmode="numeric" id="f-min-pay" placeholder="Ej: 290.000" oninput="fmtModalInput(this)"></div>
+    </div>
+    <div class="msec">Gastos Fijos Mensuales</div>
+    <div class="gml" id="gastos-list"></div>
+    <button class="btn-link" onclick="addGastoRow()">+ Agregar gasto fijo</button>
+    <div class="mactions">
+      <button class="btn-c" onclick="closeModal('modal-overlay')">Cancelar</button>
+      <button class="btn-p" onclick="saveCard()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: REGISTRAR PAGOS -->
+<div class="modal-overlay" id="pay-modal-overlay" onclick="closeModalOuter2(event)">
+  <div class="modal" style="width:600px;">
+    <h2>💳 Registrar Pagos</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Ingresá cuánto vas a pagar en cada tarjeta. Al confirmar, los montos se descuentan de la deuda actual.</p>
+    <div class="pay-total-bar">
+      <div><div class="ptl">Total a pagar</div><div class="ptv" id="pay-total-val">Gs. 0</div></div>
+      <div><div class="ptl">Presupuesto disponible</div><div class="ptv" id="pay-budget-val" style="color:var(--success)">Gs. —</div></div>
+      <div><div class="ptl">Diferencia</div><div class="ptv" id="pay-diff-val">—</div></div>
+    </div>
+    <div id="pay-cards-list"></div>
+    <button class="btn-pay-confirm" onclick="confirmPayments()">✅ CONFIRMAR PAGOS Y ACTUALIZAR DEUDAS</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+// ════════════════════════════════════════
+// FIREBASE SETUP
+// ════════════════════════════════════════
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBSf_g5FgZRZa9KqOpq3ZuJatOi3wwSGhg",
+  authDomain: "finanzas-famly.firebaseapp.com",
+  databaseURL: "https://finanzas-famly-default-rtdb.firebaseio.com",
+  projectId: "finanzas-famly",
+  storageBucket: "finanzas-famly.firebasestorage.app",
+  messagingSenderId: "928329252641",
+  appId: "1:928329252641:web:3709a2ee5d43f738088860"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+const DATA_PATH = 'tarjetas_control/v1';
+
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let cards = [];
+let budget = 0;
+let strategy = 'avalanche';
+let editIdx = null, gastoRows = [];
+let _lastWrite = null;  // prevent echo loops
+let _fbReady = false;
+
+const COLORS = ['#f59e0b','#f97316','#22c55e','#10b981','#3b82f6','#6366f1','#8b5cf6','#ec4899','#ef4444','#14b8a6'];
+const SNAMES = {avalanche:'🔥 Avalanche',snowball:'⛄ Snowball',hybrid:'⚖️ Hybrid',proportional:'📊 Proporcional'};
+const SDESC = {
+  avalanche:'<strong>Avalanche:</strong> Pagás el mínimo en todas y el excedente va a la de <strong>mayor TAN</strong>. Matemáticamente óptima: <strong>minimiza el total de intereses pagados</strong>.',
+  snowball:'<strong>Snowball:</strong> El excedente va a la de <strong>menor deuda</strong>. Cancelás tarjetas más rápido → motivación psicológica.',
+  hybrid:'<strong>Hybrid:</strong> El excedente va a la que genera <strong>más dinero en intereses por mes</strong> (TAN × deuda). Útil cuando deuda grande con tasa media supera en interés absoluto a deuda chica con tasa alta.',
+  proportional:'<strong>Proporcional:</strong> El presupuesto se distribuye en proporción a la deuda de cada tarjeta. Todas bajan al mismo ritmo relativo.',
+};
+
+// ════════════════════════════════════════
+// FORMATTING — todos los números con separadores
+// ════════════════════════════════════════
+function fmt(n, cur='PYG') {
+  if (isNaN(n) || n === null || n === undefined) return '—';
+  if (cur === 'PYG') return 'Gs. ' + new Intl.NumberFormat('es-PY').format(Math.round(n));
+  return cur + ' ' + new Intl.NumberFormat('es-PY',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+}
+function fmtN(n) {
+  if (isNaN(n) || n===null) return '—';
+  return new Intl.NumberFormat('es-PY').format(Math.round(n));
+}
+function fmtM(n) {
+  if (n>=1e9) return 'Gs. '+(n/1e9).toFixed(1)+'B';
+  if (n>=1e6) return 'Gs. '+(n/1e6).toFixed(1)+'M';
+  if (n>=1e3) return 'Gs. '+(n/1e3).toFixed(0)+'K';
+  return 'Gs. '+Math.round(n);
+}
+function fmtInput(n) { return new Intl.NumberFormat('es-PY').format(Math.round(n)); }
+
+// ════════════════════════════════════════
+// SAVE — writes to Firebase + localStorage
+// ════════════════════════════════════════
+function pushToFirebase() {
+  const payload = { cards, budget, strategy, updatedAt: Date.now() };
+  _lastWrite = JSON.stringify({cards, budget, strategy});
+  set(ref(db, DATA_PATH), payload).catch(e => console.warn('Firebase write error:', e));
+  // Always mirror to localStorage as offline backup
+  localStorage.setItem('cc4_cards', JSON.stringify(cards));
+  localStorage.setItem('cc4_budget', String(budget));
+  localStorage.setItem('cc4_strategy', strategy);
+}
+const save = () => pushToFirebase();
+const saveBudget = () => pushToFirebase();
+const saveStrat = () => pushToFirebase();
+
+// ════════════════════════════════════════
+// CONNECTION STATUS
+// ════════════════════════════════════════
+onValue(ref(db, '.info/connected'), snap => {
+  const online = snap.val() === true;
+  const dot = document.getElementById('conn-dot');
+  const lbl = document.getElementById('conn-lbl');
+  if(dot) dot.style.background = online ? 'var(--success)' : 'var(--warn)';
+  if(lbl) lbl.textContent = online ? '🟢 Online · sincronizado' : '🟡 Sin conexión · local';
+});
+
+function toast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+const monthlyRate = c => (c.rate||0)/100/12;
+const monthlyGastos = c => (c.gastos||[]).reduce((s,g)=>s+(g.amount||0),0);
+const colorFill = p => p<.6?'var(--success)':p<.9?'var(--warn)':'var(--danger)';
+function daysUntil(day) {
+  const now=new Date();
+  let d=new Date(now.getFullYear(),now.getMonth(),day);
+  if(d<=now) d=new Date(now.getFullYear(),now.getMonth()+1,day);
+  return Math.ceil((d-now)/864e5);
+}
+
+// ════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════
+function showPage(p,btn) {
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(p==='strategy') renderStrategy();
+  if(p==='projection') renderProjection();
+  if(p==='simulator') renderSim();
+  if(p==='alerts') renderAlerts();
+}
+
+// ════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════
+function renderDashboard() { renderSummary(); renderCards(); updateAlertDot(); }
+
+function renderSummary() {
+  const totalDebt  = cards.reduce((s,c)=>s+c.debt,0);
+  const totalLimit = cards.reduce((s,c)=>s+c.limit,0);
+  // Disponible = sum of max(0, límite - deuda) per card. Overcredit cards contribute 0.
+  const totalAvail = cards.reduce((s,c)=>s+Math.max(0,c.limit-c.debt),0);
+  const totalInt   = cards.reduce((s,c)=>s+c.debt*monthlyRate(c),0);
+  const totalGastos= cards.reduce((s,c)=>s+monthlyGastos(c),0);
+  const totalCharges = totalInt + totalGastos; // what will be added this month
+  const uso = totalLimit>0?totalDebt/totalLimit:0;
+  document.getElementById('summary-bar').innerHTML=`
+    <div class="stat-card"><div class="lbl">Deuda Total</div><div class="val red">${fmtM(totalDebt)}</div><div class="sub">${fmt(totalDebt)}</div></div>
+    <div class="stat-card"><div class="lbl">Disponible Total</div><div class="val green">${fmtM(totalAvail)}</div><div class="sub">Límite: ${fmt(totalLimit)}</div></div>
+    <div class="stat-card"><div class="lbl">Cargos del Mes</div><div class="val yellow">${fmtM(totalCharges)}</div><div class="sub">Int: ${fmtM(totalInt)} + Gastos: ${fmtM(totalGastos)}</div></div>
+    <div class="stat-card"><div class="lbl">Tarjetas</div><div class="val">${cards.length}</div><div class="sub">&nbsp;</div></div>
+    <div class="stat-card"><div class="lbl">Uso Total</div><div class="val ${uso>.9?'red':uso>.7?'yellow':'green'}">${Math.round(uso*100)}%</div><div class="sub">${uso>.9?'⚠️ Muy alto':uso>.7?'Moderado':'Saludable'}</div></div>
+  `;
+}
+
+function renderCards() {
+  const grid=document.getElementById('cards-grid');
+  grid.innerHTML='';
+  cards.forEach((c,i)=>{
+    const avail=Math.max(0,c.limit-c.debt);
+    const overLimit=c.debt>c.limit;
+    const pct=c.limit>0?Math.min(c.debt/c.limit,1):0;
+    const monthInt=c.debt*monthlyRate(c);
+    const gastos=monthlyGastos(c);
+    const totalChargesMonth = monthInt + gastos;
+    const color=c.color||COLORS[i%COLORS.length];
+
+    let dateBadges='';
+    if(c.closeDay){const d=daysUntil(c.closeDay);dateBadges+=`<span class="dbadge ${d<=3?'dr':d<=7?'dy':''}">Cierre día ${c.closeDay} (${d}d)</span>`;}
+    if(c.dueDay){const d=daysUntil(c.dueDay);dateBadges+=`<span class="dbadge ${d<=3?'dr':d<=5?'dy':''}">Vence día ${c.dueDay} (${d}d)</span>`;}
+    if(c.minPay) dateBadges+=`<span class="dbadge">Mín: ${fmt(c.minPay,c.currency)}</span>`;
+
+    const gastosHtml=c.gastos&&c.gastos.filter(g=>g.name&&g.amount>0).length
+      ?`<div class="gastos-list">${c.gastos.filter(g=>g.name&&g.amount>0).map(g=>`<div class="gi"><span>${g.name}</span><span>${fmt(g.amount,c.currency)}</span></div>`).join('')}</div>`:'';
+
+    // Monthly projection box
+    const gastoItems = (c.gastos||[]).filter(g=>g.name&&g.amount>0);
+    const mpRows = [
+      monthInt>0?`<div class="mp-row"><span class="mpk">Interés (TAN ${c.rate||0}%)</span><span class="mpv">${fmt(monthInt,c.currency)}</span></div>`:'',
+      ...gastoItems.map(g=>`<div class="mp-row"><span class="mpk">${g.name}</span><span class="mpv">${fmt(g.amount,c.currency)}</span></div>`)
+    ].filter(Boolean).join('');
+
+    const div=document.createElement('div');
+    div.className='tc-card';
+    div.innerHTML=`
+      <div class="card-header" style="border-left:4px solid ${color}">
+        <span class="cname">${c.name}</span>
+        <span class="crate">TAN ${c.rate||0}% a.a.</span>
+      </div>
+      <div class="card-body">
+        <div class="kv"><span class="k">Línea de Crédito</span><span class="v">${fmt(c.limit,c.currency)}</span></div>
+        <div class="kv"><span class="k">Deuda Actual</span><span class="v red">${fmt(c.debt,c.currency)}${overLimit?' ⚠️':''}</span></div>
+        <div class="kv"><span class="k">Disponible</span><span class="v green">${fmt(avail,c.currency)}</span></div>
+        <div class="prog-wrap">
+          <div class="prog-lbl"><span>Uso</span><span>${Math.round(pct*100)}%${overLimit?' ⚠️ sobre límite':''}</span></div>
+          <div class="prog-bar"><div class="prog-fill" style="width:${pct*100}%;background:${colorFill(pct)}"></div></div>
+        </div>
+        ${totalChargesMonth>0?`
+        <div class="month-proj">
+          <div class="month-proj-title">📅 Cargos que se generarán este mes</div>
+          ${mpRows}
+          <div class="mp-total"><span>Total cargos</span><span style="font-family:'JetBrains Mono'">${fmt(totalChargesMonth,c.currency)}</span></div>
+        </div>`:''}
+        ${gastosHtml}
+        ${dateBadges?`<div class="dates-row">${dateBadges}</div>`:''}
+        <div class="card-actions">
+          <button class="btn-sm pay-btn" onclick="openPayModalSingle(${i})">💰 Pagar</button>
+          <button class="btn-sm" onclick="openEditModal(${i})">✏️ Editar</button>
+          <button class="btn-sm" onclick="deleteCard(${i})">🗑️</button>
+        </div>
+      </div>`;
+    grid.appendChild(div);
+  });
+  const add=document.createElement('div');
+  add.className='add-card-btn'; add.onclick=openAddModal;
+  add.innerHTML=`<span class="plus">+</span><span>Agregar Tarjeta</span>`;
+  grid.appendChild(add);
+}
+
+// ════════════════════════════════════════
+// PAY MODAL
+// ════════════════════════════════════════
+let payAmounts = {};
+function openPayModal() {
+  payAmounts = {};
+  cards.forEach(c=>{ payAmounts[c.name]=0; });
+  renderPayModal();
+  document.getElementById('pay-modal-overlay').classList.add('open');
+}
+function openPayModalSingle(i) {
+  payAmounts = {};
+  cards.forEach(c=>{ payAmounts[c.name]=0; });
+  // Prefill with suggested minimum for this card
+  const c = cards[i];
+  const min = Math.max(c.debt*monthlyRate(c)+monthlyGastos(c), c.minPay||0);
+  payAmounts[c.name] = Math.min(min, c.debt);
+  renderPayModal();
+  document.getElementById('pay-modal-overlay').classList.add('open');
+}
+
+function renderPayModal() {
+  const bgt = budget || 0;
+  document.getElementById('pay-budget-val').textContent = budget ? fmt(budget) : '—';
+
+  const html = cards.map((c,i)=>{
+    const int = c.debt * monthlyRate(c);
+    const gastos = monthlyGastos(c);
+    const minSuggested = Math.max(int + gastos, c.minPay||0);
+    const minClamped = Math.min(minSuggested, c.debt);
+    const cur = c.currency||'PYG';
+    const color = c.color||COLORS[i%COLORS.length];
+    const currentAmt = payAmounts[c.name]||0;
+    const belowMin = currentAmt > 0 && currentAmt < minClamped;
+    return `<div class="pay-card-row">
+      <div class="pay-card-name"><span class="cdot" style="background:${color}"></span>${c.name}</div>
+      <div class="pay-card-info">
+        <span>Deuda: <strong>${fmt(c.debt,cur)}</strong></span>
+        <span>Int/mes: <strong>${fmt(int,cur)}</strong></span>
+        <span>Gastos: <strong>${fmt(gastos,cur)}</strong></span>
+        ${c.minPay?`<span>Pago mín: <strong>${fmt(c.minPay,cur)}</strong></span>`:''}
+      </div>
+      <div class="pay-input-row">
+        <label>A pagar:</label>
+        <input type="text" inputmode="numeric" id="pay-inp-${i}" value="${currentAmt>0?fmtN(currentAmt):''}"
+          placeholder="${fmtN(Math.round(minClamped))}"
+          oninput="onPayInput(${i},'${c.name}')"
+          onfocus="this.select()">
+        <button style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:11px;color:var(--muted);"
+          onclick="setPayMin(${i},'${c.name}',${Math.round(minClamped)})">Mín</button>
+      </div>
+      ${belowMin?`<div class="pay-min-warn">⚠️ Monto menor al mínimo sugerido (${fmt(minClamped,cur)}). Se acumularán intereses y posible mora.</div>`:''}
+    </div>`;
+  }).join('');
+  document.getElementById('pay-cards-list').innerHTML=html;
+  updatePayTotals();
+}
+
+function onPayInput(i, name) {
+  const inp = document.getElementById('pay-inp-'+i);
+  const raw = inp.value.replace(/\./g,'').replace(/,/g,'.').replace(/[^\d.]/g,'');
+  const n = parseFloat(raw)||0;
+  payAmounts[name] = n;
+  // reformat with separators while typing
+  if(n>0) { inp.value = new Intl.NumberFormat('es-PY').format(Math.round(n)); }
+  updatePayTotals();
+  // Update min warning
+  const c = cards[i];
+  const int = c.debt*monthlyRate(c);
+  const minSuggested = Math.max(int+monthlyGastos(c),c.minPay||0);
+  const minClamped = Math.min(minSuggested,c.debt);
+  const warn = document.querySelector(`#pay-inp-${i}`)?.parentElement?.nextElementSibling;
+  if(n>0 && n<minClamped) {
+    if(!warn||!warn.classList.contains('pay-min-warn')) {
+      const div=document.createElement('div');
+      div.className='pay-min-warn';
+      div.textContent=`⚠️ Monto menor al mínimo sugerido (${fmt(minClamped,c.currency)}). Se acumularán intereses y posible mora.`;
+      document.getElementById('pay-inp-'+i).closest('.pay-card-row').appendChild(div);
+    }
+  } else {
+    const el = document.getElementById('pay-inp-'+i).closest('.pay-card-row').querySelector('.pay-min-warn');
+    if(el) el.remove();
+  }
+}
+function setPayMin(i, name, minAmt) {
+  payAmounts[name] = minAmt;
+  document.getElementById('pay-inp-'+i).value = fmtN(minAmt);
+  updatePayTotals();
+}
+function updatePayTotals() {
+  const total = Object.values(payAmounts).reduce((s,v)=>s+(v||0),0);
+  document.getElementById('pay-total-val').textContent = fmt(total);
+  const diff = budget - total;
+  const diffEl = document.getElementById('pay-diff-val');
+  if(budget>0) {
+    diffEl.textContent = (diff>=0?'Sobrante: ':'Excede: ') + fmt(Math.abs(diff));
+    diffEl.className = 'ptv '+(diff>=0?'green':'red');
+  } else {
+    diffEl.textContent='—';
+  }
+}
+
+function confirmPayments() {
+  const total = Object.values(payAmounts).reduce((s,v)=>s+(v||0),0);
+  if(total===0){toast('⚠️ No ingresaste ningún monto');return;}
+  const names = Object.entries(payAmounts).filter(([,v])=>v>0).map(([k,v])=>`${k}: ${fmt(v)}`).join('\n');
+  if(!confirm(`Confirmar pagos:\n\n${names}\n\nTotal: ${fmt(total)}\n\n¿Descontamos estos montos de las deudas?`)) return;
+  cards.forEach(c=>{
+    const amt = payAmounts[c.name]||0;
+    if(amt>0) c.debt = Math.max(0, c.debt - amt);
+  });
+  save();
+  document.getElementById('pay-modal-overlay').classList.remove('open');
+  renderDashboard();
+  toast(`✅ Pagos registrados — Total: ${fmt(total)}`);
+}
+
+function closeModalOuter(e){if(e.target.id==='modal-overlay') closeModal('modal-overlay');}
+function closeModalOuter2(e){if(e.target.id==='pay-modal-overlay') closeModal('pay-modal-overlay');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// ════════════════════════════════════════
+// CARD MODAL
+// ════════════════════════════════════════
+function openAddModal(){
+  editIdx=null; gastoRows=[];
+  document.getElementById('modal-title').textContent='Nueva Tarjeta';
+  ['f-name','f-rate','f-limit','f-debt','f-min-pay'].forEach(id=>document.getElementById(id).value='');
+  ['f-close-day','f-due-day'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-currency').value='PYG';
+  document.getElementById('f-color').value=COLORS[cards.length%COLORS.length];
+  renderGastosList();
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function openEditModal(i){
+  editIdx=i; const c=cards[i];
+  gastoRows=(c.gastos||[]).map(g=>({...g}));
+  document.getElementById('modal-title').textContent='Editar Tarjeta';
+  document.getElementById('f-name').value=c.name;
+  document.getElementById('f-rate').value=c.rate||'';
+  document.getElementById('f-limit').value=c.limit>0?new Intl.NumberFormat('es-PY').format(c.limit):'';
+  document.getElementById('f-debt').value=c.debt>0?new Intl.NumberFormat('es-PY').format(c.debt):'';
+  document.getElementById('f-currency').value=c.currency||'PYG';
+  document.getElementById('f-color').value=c.color||COLORS[i%COLORS.length];
+  document.getElementById('f-close-day').value=c.closeDay||'';
+  document.getElementById('f-due-day').value=c.dueDay||'';
+  document.getElementById('f-min-pay').value=c.minPay>0?new Intl.NumberFormat('es-PY').format(c.minPay):'';
+  renderGastosList();
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function addGastoRow(){gastoRows.push({name:'',amount:0});renderGastosList();}
+function removeGastoRow(i){gastoRows.splice(i,1);renderGastosList();}
+function renderGastosList(){
+  document.getElementById('gastos-list').innerHTML=gastoRows.map((g,i)=>`
+    <div class="gmi">
+      <input type="text" placeholder="Nombre" value="${g.name}" oninput="gastoRows[${i}].name=this.value" style="flex:2">
+      <input type="text" inputmode="numeric" placeholder="Monto" value="${g.amount>0?new Intl.NumberFormat('es-PY').format(g.amount):''}" oninput="onGastoAmtInput(this,${i})" style="flex:1.3;font-family:'JetBrains Mono'">
+      <button class="rm" onclick="removeGastoRow(${i})">×</button>
+    </div>`).join('');
+}
+// Parse a formatted number input (removes dots/spaces used as thousand separators)
+function parseFormattedNum(str) {
+  if(!str) return NaN;
+  // Remove thousand separators (dots in es-PY locale), keep decimal comma→dot
+  return parseFloat(str.replace(/\./g,'').replace(',','.').replace(/[^\d.]/g,''));
+}
+// Auto-format a numeric text input as user types
+function fmtModalInput(el) {
+  const raw = el.value.replace(/\./g,'').replace(/[^\d]/g,'');
+  const n = parseInt(raw,10);
+  if(!isNaN(n) && raw.length>0) {
+    const pos = el.selectionStart;
+    const oldLen = el.value.length;
+    el.value = new Intl.NumberFormat('es-PY').format(n);
+    // Restore cursor position approximately
+    const diff = el.value.length - oldLen;
+    try { el.setSelectionRange(pos+diff, pos+diff); } catch(e){}
+  } else if(raw.length===0) {
+    el.value='';
+  }
+}
+function onGastoAmtInput(el, i) {
+  const raw = el.value.replace(/\./g,'').replace(/[^\d]/g,'');
+  const n = parseInt(raw,10);
+  gastoRows[i].amount = isNaN(n)?0:n;
+  if(!isNaN(n) && raw.length>0) {
+    const pos = el.selectionStart;
+    const oldLen = el.value.length;
+    el.value = new Intl.NumberFormat('es-PY').format(n);
+    const diff = el.value.length - oldLen;
+    try { el.setSelectionRange(pos+diff, pos+diff); } catch(e){}
+  }
+}
+
+function saveCard(){
+  const name=document.getElementById('f-name').value.trim();
+  const rateRaw=document.getElementById('f-rate').value.replace(',','.');
+  const rate=parseFloat(rateRaw)||0;
+  const limit=parseFormattedNum(document.getElementById('f-limit').value);
+  const debt=parseFormattedNum(document.getElementById('f-debt').value);
+  const currency=document.getElementById('f-currency').value;
+  const color=document.getElementById('f-color').value;
+  const closeDay=parseInt(document.getElementById('f-close-day').value)||null;
+  const dueDay=parseInt(document.getElementById('f-due-day').value)||null;
+  const minPay=parseFormattedNum(document.getElementById('f-min-pay').value)||null;
+  if(!name||isNaN(limit)||isNaN(debt)){toast('⚠️ Completá nombre, límite y deuda');return;}
+  const card={name,rate,limit,debt,currency,color,closeDay,dueDay,minPay,gastos:gastoRows.filter(g=>g.name)};
+  if(editIdx!==null) cards[editIdx]=card; else cards.push(card);
+  save(); closeModal('modal-overlay'); renderDashboard();
+  toast(editIdx!==null?'✅ Tarjeta actualizada':'✅ Tarjeta agregada');
+}
+function deleteCard(i){
+  if(!confirm(`¿Eliminar "${cards[i].name}"?`)) return;
+  cards.splice(i,1); save(); renderDashboard(); toast('🗑️ Eliminada');
+}
+
+// ════════════════════════════════════════
+// CORE SIMULATION
+// ════════════════════════════════════════
+function simMonths(bgt, strat, maxM=120){
+  let state=cards.map(c=>({
+    name:c.name,rate:c.rate||0,debt:c.debt,currency:c.currency||'PYG',
+    color:c.color,gastos:monthlyGastos(c),interestAccum:0,paidAccum:0,
+    minPay:c.minPay||0,
+  }));
+  const history=[];
+  let months=0;
+  for(let m=0;m<maxM;m++){
+    const totalDebt=state.reduce((s,c)=>s+c.debt,0);
+    if(totalDebt<1){months=m;break;}
+    months=m+1;
+    const interests=state.map(s=>s.debt>0?s.debt*(s.rate/100/12):0);
+    // Minimum payment = max(interest + gastos, declared min payment), capped at full debt
+    const mins=state.map((s,i)=>s.debt>0?Math.min(Math.max(interests[i]+s.gastos,s.minPay),s.debt+interests[i]):0);
+    const totalMin=mins.reduce((a,b)=>a+b,0);
+    let extra=Math.max(0,bgt-totalMin);
+    const payments=[...mins];
+    let sorted=state.map((_,i)=>i).filter(i=>state[i].debt>0);
+    if(strat==='avalanche') sorted.sort((a,b)=>state[b].rate-state[a].rate);
+    else if(strat==='snowball') sorted.sort((a,b)=>state[a].debt-state[b].debt);
+    else if(strat==='hybrid') sorted.sort((a,b)=>(state[b].debt*state[b].rate)-(state[a].debt*state[a].rate));
+    if(strat!=='proportional'){
+      for(const i of sorted){
+        const maxAdd=Math.max(0,state[i].debt+interests[i]-payments[i]);
+        const add=Math.min(extra,maxAdd);
+        payments[i]+=add; extra-=add;
+        if(extra<=0) break;
+      }
+    } else {
+      const td=state.reduce((s,c)=>s+c.debt,0);
+      state.forEach((s,i)=>{if(s.debt>0)payments[i]=td>0?Math.max(mins[i],bgt*(s.debt/td)):0;});
+    }
+    const byCard=state.map((s,i)=>{
+      const int=interests[i];
+      const pay=Math.min(payments[i],s.debt+int);
+      const newDebt=Math.max(0,s.debt+int-pay);
+      s.interestAccum+=int; s.paidAccum+=pay; s.debt=newDebt;
+      return {name:s.name,debt:s.debt,interest:int,payment:pay,newDebt,currency:s.currency};
+    });
+    history.push({month:m+1,totalDebt:state.reduce((s,c)=>s+c.debt,0),byCard});
+  }
+  return {months,history,totalInterest:state.reduce((s,c)=>s+c.interestAccum,0),finalState:state};
+}
+
+// ════════════════════════════════════════
+// STRATEGY
+// ════════════════════════════════════════
+function onBudgetChange(){
+  budget=parseFormattedNum(document.getElementById('budget-input').value)||0;
+  saveBudget(); renderStrategy();
+}
+function setStrat(s,btn){
+  strategy=s; saveStrat();
+  document.querySelectorAll('.strat-tab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderStrategy();
+}
+
+function renderStrategy(){
+  const bi=document.getElementById('budget-input');
+  if(bi&&budget&&!bi.value) bi.value=new Intl.NumberFormat('es-PY').format(budget);
+  document.querySelectorAll('.strat-tab').forEach(b=>b.classList.toggle('active',b.dataset.s===strategy));
+  document.getElementById('strat-desc').innerHTML=SDESC[strategy]||'';
+  if(!cards.length){
+    document.getElementById('strat-compare').innerHTML='';
+    document.getElementById('plan-table-wrap').innerHTML=`<div class="empty-state"><div class="icon">💳</div><p>Agregá tarjetas desde el Dashboard.</p></div>`;
+    return;
+  }
+  if(!budget){
+    document.getElementById('strat-compare').innerHTML='';
+    document.getElementById('plan-table-wrap').innerHTML=`<div class="empty-state"><div class="icon">💰</div><p>Ingresá tu presupuesto mensual arriba.</p></div>`;
+    return;
+  }
+
+  // Compare all strategies
+  const strats=['avalanche','snowball','hybrid','proportional'];
+  const results=strats.map(s=>({s,...simMonths(budget,s)}));
+  const bestInt=Math.min(...results.map(r=>r.totalInterest));
+  document.getElementById('strat-compare').innerHTML=results.map(r=>{
+    const isBest=Math.abs(r.totalInterest-bestInt)<1;
+    return `<div class="sc-card ${isBest?'best':''}" onclick="setStrat('${r.s}',document.querySelector('[data-s=${r.s}]'))">
+      <div class="sc-name">${SNAMES[r.s]}</div>
+      <div class="sc-int">${fmt(r.totalInterest)}</div>
+      <div class="sc-mo">${r.months} meses para cancelar todo</div>
+      ${isBest?'<div class="sc-best">✅ MENOR INTERÉS TOTAL</div>':''}
+    </div>`;
+  }).join('');
+
+  // Month 1 plan
+  const {history}=simMonths(budget,strategy,1);
+  if(!history.length){document.getElementById('plan-table-wrap').innerHTML='';return;}
+  const m1=history[0];
+  // Find priority
+  const totalMin=cards.map((c,i)=>{const int=c.debt*monthlyRate(c);return Math.min(Math.max(int+monthlyGastos(c),c.minPay||0),c.debt+int);}).reduce((a,b)=>a+b,0);
+  let sortedForPrio=cards.map((_,i)=>i).filter(i=>cards[i].debt>0);
+  if(strategy==='avalanche') sortedForPrio.sort((a,b)=>(cards[b].rate||0)-(cards[a].rate||0));
+  else if(strategy==='snowball') sortedForPrio.sort((a,b)=>cards[a].debt-cards[b].debt);
+  else if(strategy==='hybrid') sortedForPrio.sort((a,b)=>(cards[b].debt*(cards[b].rate||0))-(cards[a].debt*(cards[a].rate||0)));
+  const prioName=budget>totalMin&&sortedForPrio.length?cards[sortedForPrio[0]].name:null;
+
+  const tbody=m1.byCard.map((p,i)=>{
+    const c=cards.find(x=>x.name===p.name)||cards[i]||{};
+    const cur=c.currency||'PYG';
+    const int=p.interest;
+    const gastos=monthlyGastos(c);
+    const minRequired=Math.min(Math.max(int+gastos,c.minPay||0),c.debt+int);
+    const belowMin=p.payment<minRequired-1;
+    const isPrio=p.name===prioName;
+    return `<tr>
+      <td class="nc"><span class="cdot" style="background:${c.color||COLORS[i%COLORS.length]}"></span>${p.name}</td>
+      <td>${(c.rate||0).toFixed(2)}%</td>
+      <td class="red">${fmt(c.debt,cur)}</td>
+      <td class="yellow">${fmt(int,cur)}</td>
+      <td class="blue">${fmt(gastos,cur)}</td>
+      <td>${fmt(minRequired,cur)}</td>
+      <td style="font-weight:700;${belowMin?'color:var(--danger)':''}">${fmt(p.payment,cur)}</td>
+      <td>${isPrio?'<span class="bdg by">⚡ Extra</span>':''} ${belowMin?'<span class="bdg br">⚠️ Bajo mín</span>':''}</td>
+    </tr>`;
+  }).join('');
+  const totalPay=m1.byCard.reduce((s,p)=>s+p.payment,0);
+  const totalMinReq=cards.reduce((s,c,i)=>{const int=c.debt*monthlyRate(c);return s+Math.min(Math.max(int+monthlyGastos(c),c.minPay||0),c.debt+int);},0);
+  const over=totalPay>budget;
+  document.getElementById('plan-table-wrap').innerHTML=`
+    <table class="ptable">
+      <thead><tr><th>Tarjeta</th><th>TAN</th><th>Deuda Actual</th><th>Interés/Mes</th><th>Gastos Fijos</th><th>Mínimo Requerido</th><th>Pagar Este Mes</th><th></th></tr></thead>
+      <tbody>${tbody}</tbody>
+      <tfoot><tr style="background:var(--surface2)">
+        <td class="nc" colspan="5" style="font-weight:700">TOTAL</td>
+        <td style="font-family:'JetBrains Mono';font-weight:700">${fmt(totalMinReq)}</td>
+        <td style="font-family:'JetBrains Mono';font-weight:700">${fmt(totalPay)}</td>
+        <td></td>
+      </tr></tfoot>
+    </table>
+    <div class="info-row">
+      Presupuesto: <strong>${fmt(budget)}</strong> — Mínimos requeridos: <strong>${fmt(totalMinReq)}</strong> — Total plan: <strong>${fmt(totalPay)}</strong>
+      ${over?`<span class="red">⚠️ Excede presupuesto en ${fmt(totalPay-budget)}</span>`:`<span class="green">✅ Sobrante: ${fmt(budget-totalPay)}</span>`}
+    </div>`;
+}
+
+// ════════════════════════════════════════
+// SIMULATOR
+// ════════════════════════════════════════
+function renderSim(){
+  if(!cards.length){document.getElementById('sim-table').innerHTML=`<div class="empty-state"><div class="icon">📊</div><p>Agregá tarjetas primero.</p></div>`;return;}
+  const slider=document.getElementById('sim-slider');
+  const maxDebt=cards.reduce((s,c)=>s+c.debt,0);
+  slider.max=Math.max(20000000,Math.round(maxDebt*.5/100000)*100000);
+  if(!slider._init){slider.value=budget||Math.round(maxDebt*.05/100000)*100000;slider._init=true;}
+  const simBgt=parseFloat(slider.value);
+  document.getElementById('sim-val').textContent=fmt(simBgt);
+  const simStrat=document.getElementById('sim-strat').value;
+  const {months,history,totalInterest,finalState}=simMonths(simBgt,simStrat);
+  const cardFinish={};
+  history.forEach(row=>row.byCard.forEach(c=>{if(c.newDebt<1&&!cardFinish[c.name])cardFinish[c.name]=row.month;}));
+  const rows=cards.map((c,i)=>{
+    const fin=cardFinish[c.name]||months;
+    const fd=new Date(); fd.setMonth(fd.getMonth()+fin);
+    const fs=finalState.find(x=>x.name===c.name);
+    return `<tr>
+      <td><span class="cdot" style="background:${c.color||COLORS[i%COLORS.length]}"></span>${c.name}</td>
+      <td class="red">${fmt(c.debt,c.currency)}</td>
+      <td>${fin} meses</td>
+      <td>${fd.toLocaleDateString('es-PY',{month:'short',year:'numeric'})}</td>
+      <td class="yellow">${fmt(fs?fs.interestAccum:0,c.currency)}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('sim-table').innerHTML=`
+    <table><thead><tr><th>Tarjeta</th><th>Deuda Actual</th><th>Meses</th><th>Cancela aprox.</th><th>Intereses totales</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr style="background:var(--surface2)">
+      <td style="font-weight:700">TOTAL</td><td class="red" style="font-family:'JetBrains Mono'">${fmt(maxDebt)}</td>
+      <td style="font-weight:700">${months} m</td><td></td>
+      <td class="yellow" style="font-family:'JetBrains Mono'">${fmt(totalInterest)}</td>
+    </tr></tfoot></table>`;
+  // Suggestion
+  const allRes=['avalanche','snowball','hybrid','proportional'].map(s=>({s,...simMonths(simBgt,s)}));
+  const best=allRes.reduce((a,b)=>a.totalInterest<b.totalInterest?a:b);
+  const cur=allRes.find(r=>r.s===simStrat);
+  const saving=cur.totalInterest-best.totalInterest;
+  document.getElementById('sim-sug').innerHTML=saving>10000
+    ?`<div class="sug-box warn"><h4>💡 Podés ahorrar ${fmt(saving)}</h4><p>Con <strong>${SNAMES[best.s]}</strong> pagarías menos en intereses y terminarías en <strong>${best.months} meses</strong>.</p></div>`
+    :`<div class="sug-box ok"><h4>✅ Estrategia óptima</h4><p>Estás usando la estrategia que minimiza los intereses con este presupuesto.</p></div>`;
+  // Chart
+  const step=Math.max(1,Math.ceil(months/80));
+  const cd=history.filter((_,i)=>i%step===0);
+  const peak=maxDebt||1;
+  document.getElementById('sim-chart').innerHTML=cd.map(row=>{
+    const pct=Math.max(2,(row.totalDebt/peak)*100);
+    return `<div class="bw" title="Mes ${row.month}: ${fmt(row.totalDebt)}">
+      <div class="bf" style="height:${pct}%;background:${pct>60?'var(--danger)':pct>30?'var(--warn)':'var(--success)'}"></div>
+      ${cd.length<30?`<div class="bl">M${row.month}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+// PROJECTION
+// ════════════════════════════════════════
+function renderProjection(){
+  if(!cards.length||!budget){
+    document.getElementById('proj-summary').innerHTML=`<div class="empty-state"><div class="icon">📊</div><p>Configurá tarjetas y presupuesto en Estrategia.</p></div>`;
+    document.getElementById('timeline-wrap').innerHTML='';
+    document.getElementById('month-table').innerHTML='';
+    return;
+  }
+  const {months,history,totalInterest}=simMonths(budget,strategy);
+  const initDebt=cards.reduce((s,c)=>s+c.debt,0);
+  const fd=new Date(); fd.setMonth(fd.getMonth()+months);
+  document.getElementById('proj-summary').innerHTML=`
+    <div class="proj-card"><div class="pval blue">${months}</div><div class="plbl">Meses totales</div></div>
+    <div class="proj-card"><div class="pval red">${fmt(totalInterest)}</div><div class="plbl">Total intereses</div></div>
+    <div class="proj-card"><div class="pval">${fmt(initDebt)}</div><div class="plbl">Deuda inicial</div></div>
+    <div class="proj-card"><div class="pval yellow">${fmt(budget*months)}</div><div class="plbl">Total desembolsado</div></div>
+    <div class="proj-card"><div class="pval green" style="font-size:13px">${fd.toLocaleDateString('es-PY',{month:'long',year:'numeric'})}</div><div class="plbl">Cancelación estimada</div></div>
+  `;
+  const cardFinish={};
+  history.forEach(row=>row.byCard.forEach(c=>{if(c.newDebt<1&&!cardFinish[c.name])cardFinish[c.name]=row.month;}));
+  document.getElementById('timeline-wrap').innerHTML=cards.map((c,i)=>{
+    const fin=cardFinish[c.name]||months;
+    const color=c.color||COLORS[i%COLORS.length];
+    return `<div class="tl-row">
+      <div class="tl-lbl"><span class="cdot" style="background:${color}"></span>${c.name}</div>
+      <div class="tl-bars">
+        <div class="tl-seg" style="flex:${fin};background:${color};opacity:.8">mes ${fin}</div>
+        ${months-fin>0?`<div class="tl-seg" style="flex:${months-fin};background:var(--surface2)"></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  const headerNames=cards.map(c=>`<th>${c.name.slice(0,11)}</th>`).join('');
+  const tableRows=history.filter((r,i)=>r.month<=24||i%3===0).map(row=>{
+    const yr=Math.ceil(row.month/12);
+    const mo=((row.month-1)%12)+1;
+    const cells=row.byCard.map(c=>`<td style="color:${c.newDebt<1?'var(--success)':''}">${fmtN(c.newDebt)}</td>`).join('');
+    return `<tr><td class="nc">Año ${yr} M${String(mo).padStart(2,'0')}</td>${cells}</tr>`;
+  }).join('');
+  document.getElementById('month-table').innerHTML=`
+    <table class="ptable"><thead><tr><th>Período</th>${headerNames}</tr></thead><tbody>${tableRows}</tbody></table>`;
+}
+
+// ════════════════════════════════════════
+// ALERTS
+// ════════════════════════════════════════
+function updateAlertDot(){
+  const has=cards.some(c=>(c.dueDay&&daysUntil(c.dueDay)<=5)||(c.closeDay&&daysUntil(c.closeDay)<=3)||c.debt>c.limit);
+  document.getElementById('alert-dot').style.display=has?'block':'none';
+}
+function renderAlerts(){
+  if(!cards.length){document.getElementById('alerts-list').innerHTML=`<div class="empty-state"><div class="icon">🔔</div><p>Agregá tarjetas con fechas para ver alertas.</p></div>`;return;}
+  const alerts=[];
+  cards.forEach(c=>{
+    const color=c.color||'#888';
+    if(c.debt>c.limit) alerts.push({u:0,html:`<div class="al-item urgent"><span class="al-icon">🔴</span><div><div class="al-title">${c.name} — Deuda supera el límite</div><div class="al-sub">Deuda ${fmt(c.debt,c.currency)} vs Límite ${fmt(c.limit,c.currency)} — Exceso: ${fmt(c.debt-c.limit,c.currency)}</div></div></div>`});
+    if(c.dueDay){const d=daysUntil(c.dueDay);const u=d<=3?0:d<=7?1:2;alerts.push({u,html:`<div class="al-item ${u===0?'urgent':u===1?'warning':'ok'}" style="border-left-color:${color}"><span class="al-icon">${u===0?'🚨':u===1?'⚠️':'✅'}</span><div><div class="al-title">${c.name} — Vencimiento en ${d} día${d===1?'':'s'} (día ${c.dueDay})</div><div class="al-sub">${c.minPay?`Pago mínimo: ${fmt(c.minPay,c.currency)} · `:''}${u===0?'⚡ Pagá hoy para evitar mora':u===1?'Prepará el pago esta semana':'Sin urgencia'}</div></div></div>`});}
+    if(c.closeDay){const d=daysUntil(c.closeDay);const u=d<=3?0:d<=7?1:2;alerts.push({u,html:`<div class="al-item ${u===0?'urgent':u===1?'warning':'ok'}" style="border-left-color:${color}"><span class="al-icon">${u===0?'📅':u===1?'📋':'📆'}</span><div><div class="al-title">${c.name} — Cierre en ${d} día${d===1?'':'s'} (día ${c.closeDay})</div><div class="al-sub">${u===0?'Pagá antes del cierre para reducir el saldo facturado':u===1?'Conveniente pagar esta semana':'Sin urgencia inmediata'}</div></div></div>`});}
+    if(!c.closeDay&&!c.dueDay) alerts.push({u:3,html:`<div class="al-item ok"><span class="al-icon">ℹ️</span><div><div class="al-title">${c.name} — Sin fechas configuradas</div><div class="al-sub">Editá la tarjeta para agregar día de cierre y vencimiento.</div></div></div>`});
+  });
+  alerts.sort((a,b)=>a.u-b.u);
+  document.getElementById('alerts-list').innerHTML=alerts.map(a=>a.html).join('');
+}
+
+// ════════════════════════════════════════
+// EXPOSE TO GLOBAL SCOPE (required for inline HTML handlers with type="module")
+// ════════════════════════════════════════
+window.showPage        = showPage;
+window.openAddModal    = openAddModal;
+window.openEditModal   = openEditModal;
+window.openPayModal    = openPayModal;
+window.openPayModalSingle = openPayModalSingle;
+window.closeModal      = closeModal;
+window.closeModalOuter = closeModalOuter;
+window.closeModalOuter2= closeModalOuter2;
+window.saveCard        = saveCard;
+window.deleteCard      = deleteCard;
+window.addGastoRow     = addGastoRow;
+window.removeGastoRow  = removeGastoRow;
+window.fmtModalInput   = fmtModalInput;
+window.onGastoAmtInput = onGastoAmtInput;
+window.onBudgetChange  = onBudgetChange;
+window.setStrat        = setStrat;
+window.renderSim       = renderSim;
+window.onPayInput      = onPayInput;
+window.setPayMin       = setPayMin;
+window.confirmPayments = confirmPayments;
+window.renderDashboard = renderDashboard;
+window.renderStrategy  = renderStrategy;
+window.renderProjection= renderProjection;
+window.renderAlerts    = renderAlerts;
+
+// ════════════════════════════════════════
+// INIT — Firebase real-time listener
+// ════════════════════════════════════════
+const DEFAULT_CARDS = [
+  {name:'TC Continental EDU',rate:16.80,limit:12100000,debt:13021488,currency:'PYG',color:'#f59e0b',closeDay:null,dueDay:null,minPay:290000,gastos:[{name:'Seg. canc. Deuda',amount:4500},{name:'Manten. Mensual',amount:15000}]},
+  {name:'TC Continental Grupo',rate:18.27,limit:20000000,debt:17324774,currency:'PYG',color:'#f97316',closeDay:null,dueDay:null,minPay:470000,gastos:[{name:'Seguro Hogar',amount:70000},{name:'Seg. canc. Deuda',amount:4500},{name:'Manten. Mensual',amount:30000},{name:'Pago Anual (327273/12)',amount:27273},{name:'Aseguradora Tajy',amount:266000}]},
+  {name:'Banco Familiar EDU',rate:18.27,limit:15000000,debt:7817074,currency:'PYG',color:'#22c55e',closeDay:null,dueDay:null,minPay:260000,gastos:[{name:'Seguro Locales',amount:330900},{name:'Manten. Mensual',amount:15000},{name:'Seg. canc. Deuda',amount:12570}]},
+  {name:'Banco Familiar Andy',rate:18.27,limit:20000000,debt:7800000,currency:'PYG',color:'#10b981',closeDay:null,dueDay:null,minPay:170000,gastos:[{name:'Manten. Mensual',amount:15000},{name:'Seg. canc. Deuda',amount:7746}]},
+  {name:'TC Sudameris EDU',rate:17.10,limit:10000000,debt:7183796,currency:'PYG',color:'#3b82f6',closeDay:null,dueDay:null,minPay:540000,gastos:[{name:'Facebook',amount:900000},{name:'Seg. canc. Deuda',amount:4501},{name:'Cuota anual',amount:25000},{name:'OPTUS Australia',amount:625000}]},
+  {name:'TC Sudameris Andrea',rate:17.10,limit:10000000,debt:7185011,currency:'PYG',color:'#6366f1',closeDay:null,dueDay:null,minPay:160000,gastos:[{name:'Seg. canc. Deuda',amount:4501}]},
+  {name:'TC Amex S6',rate:0,limit:8500000,debt:3288333,currency:'PYG',color:'#8b5cf6',closeDay:null,dueDay:null,minPay:80000,gastos:[{name:'Manten. Mensual',amount:15000},{name:'Seg. canc. Deuda',amount:12000}]},
+  {name:'TC TAM',rate:0,limit:4800000,debt:1912690,currency:'PYG',color:'#ec4899',closeDay:null,dueDay:null,minPay:90000,gastos:[{name:'Cuota Anual',amount:18950},{name:'Seg. canc. Deuda',amount:6686}]},
+  {name:'Itaú Platinum',rate:0,limit:30000000,debt:20618085,currency:'PYG',color:'#ef4444',closeDay:null,dueDay:null,minPay:620000,gastos:[{name:'Aporte Andrea Mutual',amount:650000},{name:'Seg. canc. Deuda',amount:4501},{name:'Costo TC (1000000/12)',amount:83333}]},
+  {name:'UENO',rate:0,limit:1500000,debt:27829,currency:'PYG',color:'#14b8a6',closeDay:null,dueDay:null,minPay:10000,gastos:[{name:'Seg. canc. Deuda',amount:4501},{name:'Costo TC',amount:10000}]},
+];
+
+// Show loading state while Firebase connects
+document.getElementById('cards-grid').innerHTML = `<div class="empty-state"><div class="icon">🔄</div><p>Conectando con Firebase...</p></div>`;
+
+// Real-time listener — fires immediately with current data, then on every change
+onValue(ref(db, DATA_PATH), snap => {
+  const data = snap.val();
+
+  if(!_fbReady) {
+    // First load: initialize state
+    _fbReady = true;
+    if(data && Array.isArray(data.cards) && data.cards.length) {
+      cards    = data.cards;
+      budget   = data.budget   || 0;
+      strategy = data.strategy || 'avalanche';
+      _lastWrite = JSON.stringify({cards, budget, strategy});
+    } else {
+      // First ever load — push defaults to Firebase
+      cards    = DEFAULT_CARDS;
+      budget   = 5380000;
+      strategy = 'avalanche';
+      pushToFirebase();
+    }
+    renderDashboard();
+    return;
+  }
+
+  // Subsequent updates from OTHER users
+  if(!data) return;
+  const incoming = JSON.stringify({cards: data.cards, budget: data.budget, strategy: data.strategy});
+  if(incoming === _lastWrite) return; // own write, skip
+  _lastWrite = incoming;
+
+  if(data.cards)              cards    = data.cards;
+  if(data.budget !== undefined) budget = data.budget;
+  if(data.strategy)           strategy = data.strategy;
+
+  // Mirror to localStorage
+  localStorage.setItem('cc4_cards', JSON.stringify(cards));
+  localStorage.setItem('cc4_budget', String(budget));
+  localStorage.setItem('cc4_strategy', strategy);
+
+  // Show sync toast
+  toast('🔄 Datos actualizados por otro usuario');
+
+  // Re-render whichever page is active
+  renderDashboard();
+  const activePage = document.querySelector('.page.active')?.id;
+  if(activePage === 'page-strategy')   renderStrategy();
+  if(activePage === 'page-projection') renderProjection();
+  if(activePage === 'page-simulator')  renderSim();
+  if(activePage === 'page-alerts')     renderAlerts();
+}, err => {
+  // Firebase failed — fall back to localStorage
+  console.warn('Firebase error, using localStorage:', err);
+  cards    = JSON.parse(localStorage.getItem('cc4_cards') || 'null') || DEFAULT_CARDS;
+  budget   = parseFloat(localStorage.getItem('cc4_budget') || '5380000');
+  strategy = localStorage.getItem('cc4_strategy') || 'avalanche';
+  _fbReady = true;
+  renderDashboard();
+});
+</script>
+</body>
+</html>
