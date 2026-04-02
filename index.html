@@ -625,17 +625,17 @@ function startSync(){
 
 // ══ PRESUPUESTOS POR DEFECTO — NUNCA SE PIERDEN ══
 const PRESUP_DEFAULT=[
-  {id:'p01',cat:'renta',    monto:3467,freq:'mensual',nota:'A$800/semana x 4.33'},
-  {id:'p02',cat:'super',    monto:1600,freq:'mensual',nota:'Compras semanales'},
-  {id:'p03',cat:'transporte',monto:800,freq:'mensual',nota:''},
-  {id:'p04',cat:'prestamo', monto:1000,freq:'mensual',nota:'Tia Mamu'},
-  {id:'p05',cat:'telefonia',monto:205, freq:'mensual',nota:'Optus'},
-  {id:'p06',cat:'educacion',monto:1800,freq:'mensual',nota:'Pago estudios 1/2'},
-  {id:'p07',cat:'clases',   monto:200, freq:'mensual',nota:'Samu Classes'},
+  {id:'p01',cat:'renta',nombre:'Renta',emoji:'🏠',    monto:3467,freq:'mensual',nota:'A$800/semana x 4.33'},
+  {id:'p02',cat:'super',nombre:'Supermercado',emoji:'🛒',    monto:1600,freq:'mensual',nota:'Compras semanales'},
+  {id:'p03',cat:'transporte',nombre:'Transporte',emoji:'🚗',monto:800,freq:'mensual',nota:''},
+  {id:'p04',cat:'prestamo',nombre:'Préstamo',emoji:'💸', monto:1000,freq:'mensual',nota:'Tia Mamu'},
+  {id:'p05',cat:'telefonia',nombre:'Telefonía',emoji:'📱',monto:205, freq:'mensual',nota:'Optus'},
+  {id:'p06',cat:'educacion',nombre:'Educación',emoji:'📚',monto:1800,freq:'mensual',nota:'Pago estudios 1/2'},
+  {id:'p07',cat:'clases',nombre:'Clases Samu',emoji:'🎓',   monto:200, freq:'mensual',nota:'Samu Classes'},
   {id:'p08',cat:'escuela',  monto:1232,freq:'mensual',nota:'A$3080 c/2.5m prorrateado'},
-  {id:'p09',cat:'firecamp', monto:319, freq:'mensual',nota:''},
-  {id:'p10',cat:'ahorro',   monto:750, freq:'mensual',nota:'Ahorro planificado'},
-  {id:'p11',cat:'varios',   monto:1000,freq:'mensual',nota:''},
+  {id:'p09',cat:'firecamp',nombre:'Fire Camp',emoji:'🏕️', monto:319, freq:'mensual',nota:''},
+  {id:'p10',cat:'ahorro',nombre:'Ahorro',emoji:'🐣',   monto:750, freq:'mensual',nota:'Ahorro planificado'},
+  {id:'p11',cat:'varios',nombre:'Varios',emoji:'🎀',   monto:1000,freq:'mensual',nota:''},
 ];
 function asegurarPresupuestos(){
   if(!Array.isArray(db.presupuestos)||db.presupuestos.length===0){
@@ -678,16 +678,16 @@ function init(){
   asegurarPresupuestos();
   if(!Array.isArray(db.presupuestos)||db.presupuestos.length===0){
     db.presupuestos=[
-    {id:'p02',cat:'prestamo',  monto:1000,freq:'mensual',nota:'Tia Mamu'},
-    {id:'p03',cat:'super',     monto:1600,freq:'mensual',nota:'Supermercado'},
-    {id:'p04',cat:'telefonia', monto:205, freq:'mensual',nota:'Optus'},
-    {id:'p05',cat:'transporte',monto:800, freq:'mensual',nota:''},
-    {id:'p06',cat:'ahorro',    monto:750, freq:'mensual',nota:''},
-    {id:'p07',cat:'educacion', monto:1800,freq:'mensual',nota:'Pago 1/2 Estudios'},
-    {id:'p08',cat:'varios',    monto:1000,freq:'mensual',nota:''},
-    {id:'p09',cat:'renta',     monto:3460,freq:'mensual',nota:'RENT'},
-    {id:'p10',cat:'clases',    monto:200, freq:'mensual',nota:'Samu Classes'},
-    {id:'p11',cat:'firecamp',  monto:319, freq:'mensual',nota:'Fire Camp'},
+    {id:'p02',cat:'prestamo',nombre:'Préstamo',emoji:'💸',  monto:1000,freq:'mensual',nota:'Tia Mamu',nombre:'Préstamo',emoji:'💸'},
+    {id:'p03',cat:'super',nombre:'Supermercado',emoji:'🛒',     monto:1600,freq:'mensual',nota:'Supermercado',nombre:'Supermercado',emoji:'🛒'},
+    {id:'p04',cat:'telefonia',nombre:'Telefonía',emoji:'📱', monto:205, freq:'mensual',nota:'Optus',nombre:'Telefonía',emoji:'📱'},
+    {id:'p05',cat:'transporte',nombre:'Transporte',emoji:'🚗',monto:800, freq:'mensual',nota:'',nombre:'Transporte',emoji:'🚗'},
+    {id:'p06',cat:'ahorro',nombre:'Ahorro',emoji:'🐣',    monto:750, freq:'mensual',nota:'',nombre:'Ahorro',emoji:'🐣'},
+    {id:'p07',cat:'educacion',nombre:'Educación',emoji:'📚', monto:1800,freq:'mensual',nota:'Pago 1/2 Estudios',nombre:'Educación',emoji:'📚'},
+    {id:'p08',cat:'varios',nombre:'Varios',emoji:'🎀',    monto:1000,freq:'mensual',nota:'',nombre:'Varios',emoji:'🎀'},
+    {id:'p09',cat:'renta',nombre:'Renta',emoji:'🏠',     monto:3460,freq:'mensual',nota:'RENT',nombre:'Renta',emoji:'🏠'},
+    {id:'p10',cat:'clases',nombre:'Clases Samu',emoji:'🎓',    monto:200, freq:'mensual',nota:'Samu Classes',nombre:'Clases Samu',emoji:'🎓'},
+    {id:'p11',cat:'firecamp',nombre:'Fire Camp',emoji:'🏕️',  monto:319, freq:'mensual',nota:'Fire Camp',nombre:'Fire Camp',emoji:'🏕️'},
   ];
     save();
   }
@@ -723,16 +723,16 @@ function calcCaja(){
 function getPresupuestos(){
   if(Array.isArray(db.presupuestos)&&db.presupuestos.length>0) return db.presupuestos;
   return[
-    {id:'p02',cat:'prestamo',  monto:1000,freq:'mensual',nota:'Tia Mamu'},
-    {id:'p03',cat:'super',     monto:1600,freq:'mensual',nota:'Supermercado'},
-    {id:'p04',cat:'telefonia', monto:205, freq:'mensual',nota:'Optus'},
-    {id:'p05',cat:'transporte',monto:800, freq:'mensual',nota:''},
-    {id:'p06',cat:'ahorro',    monto:750, freq:'mensual',nota:''},
-    {id:'p07',cat:'educacion', monto:1800,freq:'mensual',nota:'Pago 1/2 Estudios'},
-    {id:'p08',cat:'varios',    monto:1000,freq:'mensual',nota:''},
-    {id:'p09',cat:'renta',     monto:3460,freq:'mensual',nota:'RENT'},
-    {id:'p10',cat:'clases',    monto:200, freq:'mensual',nota:'Samu Classes'},
-    {id:'p11',cat:'firecamp',  monto:319, freq:'mensual',nota:'Fire Camp'},
+    {id:'p02',cat:'prestamo',nombre:'Préstamo',emoji:'💸',  monto:1000,freq:'mensual',nota:'Tia Mamu',nombre:'Préstamo',emoji:'💸'},
+    {id:'p03',cat:'super',nombre:'Supermercado',emoji:'🛒',     monto:1600,freq:'mensual',nota:'Supermercado',nombre:'Supermercado',emoji:'🛒'},
+    {id:'p04',cat:'telefonia',nombre:'Telefonía',emoji:'📱', monto:205, freq:'mensual',nota:'Optus',nombre:'Telefonía',emoji:'📱'},
+    {id:'p05',cat:'transporte',nombre:'Transporte',emoji:'🚗',monto:800, freq:'mensual',nota:'',nombre:'Transporte',emoji:'🚗'},
+    {id:'p06',cat:'ahorro',nombre:'Ahorro',emoji:'🐣',    monto:750, freq:'mensual',nota:'',nombre:'Ahorro',emoji:'🐣'},
+    {id:'p07',cat:'educacion',nombre:'Educación',emoji:'📚', monto:1800,freq:'mensual',nota:'Pago 1/2 Estudios',nombre:'Educación',emoji:'📚'},
+    {id:'p08',cat:'varios',nombre:'Varios',emoji:'🎀',    monto:1000,freq:'mensual',nota:'',nombre:'Varios',emoji:'🎀'},
+    {id:'p09',cat:'renta',nombre:'Renta',emoji:'🏠',     monto:3460,freq:'mensual',nota:'RENT',nombre:'Renta',emoji:'🏠'},
+    {id:'p10',cat:'clases',nombre:'Clases Samu',emoji:'🎓',    monto:200, freq:'mensual',nota:'Samu Classes',nombre:'Clases Samu',emoji:'🎓'},
+    {id:'p11',cat:'firecamp',nombre:'Fire Camp',emoji:'🏕️',  monto:319, freq:'mensual',nota:'Fire Camp',nombre:'Fire Camp',emoji:'🏕️'},
   ];
 }
 function calcPresupCats(){
@@ -1138,8 +1138,10 @@ function openEditPresup(id){
   const p=db.presupuestos.find(p=>p.id===id);
   if(!p)return;
   document.getElementById('editPresupId').value=id;
-  document.getElementById('mpNombre').value=p.nombre||getCatLabel(p.cat);
-  document.getElementById('mpEmoji').value=p.emoji||getCatEmoji(p.cat);
+  // Nombre: usar p.nombre si existe, sino buscar en getAllCats, sino la key
+  const catInfo=getAllCats().find(x=>x.key===p.cat);
+  document.getElementById('mpNombre').value=p.nombre||(catInfo?catInfo.label:p.cat);
+  document.getElementById('mpEmoji').value=p.emoji||(catInfo?catInfo.emoji:'🎀');
   document.getElementById('mpMonto').value=p.montoPorPago||p.monto;
   document.getElementById('mpFreq').value=p.freq||'mensual';
   document.getElementById('mpDuracion').value=p.duracion||'indefinido';
@@ -1301,7 +1303,7 @@ function abonar(){
       m.semanal=parseFloat(((m.obj-m.actual)/Math.max(1,sems)).toFixed(2));
     }
     // Registrar como gasto de ahorro
-    db.gastos.push({id:uid(),desc:`🐣 Ahorro — ${m.nombre}`,cat:'ahorro',monto:v,fecha:hoy(),tipo:'planificado',nota:`Meta: ${m.nombre}`});
+    db.gastos.push({id:uid(),desc:`🐣 Ahorro — ${m.nombre}`,cat:'ahorro',nombre:'Ahorro',emoji:'🐣',monto:v,fecha:hoy(),tipo:'planificado',nota:`Meta: ${m.nombre}`});
   }
   closeModal('modalAbonar');save();renderAll();
 }
@@ -1587,7 +1589,7 @@ function rPresup(){
   listaDiv.innerHTML=getPresupuestos().length?cats.map(c=>`
     <div class="li">
       <span class="li-dot" style="background:var(--accent)"></span>
-      <div class="li-body"><strong>${CE[c.cat]||'🎀'} ${CNOMBRE[c.cat]}</strong><small>${c.nota||''} · ${{mensual:'Mensual',semanal:'Semanal',quincenal:'Quincenal',cada25m:'Cada 2.5m',unico:'Único'}[c.freq]||c.freq}${c.duracion==='cuotas'&&c.cuotas?' · '+c.cuotas+' cuotas':c.duracion==='fecha'&&c.fechaFin?' · hasta '+new Date(c.fechaFin).toLocaleDateString('es-AR',{month:'short',year:'numeric'}):''}</small></div>
+      <div class="li-body"><strong>${getCatEmoji(c.cat)} ${c.nombre||getCatLabel(c.cat)}</strong><small>${c.nota||''} · ${{mensual:'Mensual',semanal:'Semanal',quincenal:'Quincenal',cada25m:'Cada 2.5m',unico:'Único'}[c.freq]||c.freq}${c.duracion==='cuotas'&&c.cuotas?' · '+c.cuotas+' cuotas':c.duracion==='fecha'&&c.fechaFin?' · hasta '+new Date(c.fechaFin).toLocaleDateString('es-AR',{month:'short',year:'numeric'}):''}</small></div>
       <div class="li-amount">${fmt(c.monto)}</div>
       <button class="btn btn-ghost btn-sm" onclick="openEditPresup('${c.id}')">✏️</button>
       <button class="btn btn-red" onclick="delPresup('${c.id}')">✕</button>
