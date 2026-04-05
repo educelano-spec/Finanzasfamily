@@ -1063,7 +1063,7 @@ function showKpiModal(tipo){
     let rows=cats.filter(p=>p.monto>0).sort((a,b)=>b.monto-a.monto).map(p=>`
       <div class="li">
         <span class="li-dot" style="background:var(--accent)"></span>
-        <div class="li-body"><strong>${CE[p.cat]||'🎀'} ${CNOMBRE[p.cat]}</strong>
+        <div class="li-body"><strong>${p.emoji||getCatEmoji(p.cat)} ${p.nombre||getCatLabel(p.cat)}</strong>
           <small>${p.nota||''} · ${{mensual:'Mensual',semanal:'Semanal',quincenal:'Quincenal',cada25m:'Cada 2.5m',unico:'Único'}[p.freq]||p.freq}</small>
         </div>
         <div class="li-amount neu">${fmt(p.monto)}</div>
