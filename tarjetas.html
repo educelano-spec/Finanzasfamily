@@ -605,57 +605,98 @@ function renderCards() {
 // PAY MODAL
 // ════════════════════════════════════════
 let payAmounts = {};
+let ppAmounts  = {}; // user's custom amounts from Plan de Pago tab
+
 function openPayModal() {
+  // Pre-fill from ppAmounts if user has entered amounts there
   payAmounts = {};
-  cards.forEach(c=>{ payAmounts[c.name]=0; });
-  renderPayModal();
-  document.getElementById('pay-modal-overlay').classList.add('open');
-}
-function openPayModalSingle(i) {
-  payAmounts = {};
-  cards.forEach(c=>{ payAmounts[c.name]=0; });
-  // Prefill with suggested minimum for this card
-  const c = cards[i];
-  const min = Math.max(c.debt*monthlyRate(c)+monthlyGastos(c), c.minPay||0);
-  payAmounts[c.name] = Math.min(min, c.debt);
+  const hasPPAmounts = Object.values(ppAmounts).some(v=>v>0);
+  cards.forEach(c => {
+    payAmounts[c.name] = hasPPAmounts ? (ppAmounts[c.name]||0) : 0;
+  });
   renderPayModal();
   document.getElementById('pay-modal-overlay').classList.add('open');
 }
 
+function openPayModalSingle(i) {
+  payAmounts = {};
+  cards.forEach(c=>{ payAmounts[c.name] = ppAmounts[c.name]||0; });
+  // If nothing in plan, prefill this card with its minimum
+  if(!payAmounts[cards[i].name]) {
+    const c = cards[i];
+    const min = Math.max(c.debt*monthlyRate(c)+monthlyGastos(c), c.minPay||0);
+    payAmounts[c.name] = Math.round(Math.min(min, c.debt));
+  }
+  renderPayModal();
+  document.getElementById('pay-modal-overlay').classList.add('open');
+}
+
+function loadPayFromSource(source) {
+  // source: 'plan' | 'suggested' | 'mins' | 'clear'
+  if(source === 'clear') {
+    cards.forEach(c => { payAmounts[c.name] = 0; });
+  } else if(source === 'plan') {
+    cards.forEach(c => { payAmounts[c.name] = ppAmounts[c.name]||0; });
+  } else if(source === 'suggested') {
+    const {history} = simMonths(budget||0, strategy, 1);
+    if(history.length) history[0].byCard.forEach(p => { payAmounts[p.name] = Math.round(p.payment); });
+  } else if(source === 'mins') {
+    cards.forEach(c => {
+      const int = c.debt*monthlyRate(c);
+      const gastos = monthlyGastos(c);
+      const min = Math.min(Math.max(int+gastos, c.minPay||0), c.debt+int+gastos);
+      payAmounts[c.name] = Math.round(min);
+    });
+  }
+  renderPayModal();
+}
+
 function renderPayModal() {
-  const bgt = budget || 0;
   document.getElementById('pay-budget-val').textContent = budget ? fmt(budget) : '—';
+  const hasPP = Object.values(ppAmounts).some(v=>v>0);
 
   const html = cards.map((c,i)=>{
     const int = c.debt * monthlyRate(c);
     const gastos = monthlyGastos(c);
     const minSuggested = Math.max(int + gastos, c.minPay||0);
-    const minClamped = Math.min(minSuggested, c.debt);
+    const minClamped = Math.round(Math.min(minSuggested, c.debt+int+gastos));
     const cur = c.currency||'PYG';
     const color = c.color||COLORS[i%COLORS.length];
     const currentAmt = payAmounts[c.name]||0;
-    const belowMin = currentAmt > 0 && currentAmt < minClamped;
+    const belowMin = currentAmt > 0 && currentAmt < minClamped - 1;
+    const ppAmt = ppAmounts[c.name]||0;
     return `<div class="pay-card-row">
       <div class="pay-card-name"><span class="cdot" style="background:${color}"></span>${c.name}</div>
       <div class="pay-card-info">
         <span>Deuda: <strong>${fmt(c.debt,cur)}</strong></span>
         <span>Int/mes: <strong>${fmt(int,cur)}</strong></span>
         <span>Gastos: <strong>${fmt(gastos,cur)}</strong></span>
-        ${c.minPay?`<span>Pago mín: <strong>${fmt(c.minPay,cur)}</strong></span>`:''}
+        ${c.minPay?`<span>Pago mín declarado: <strong>${fmt(c.minPay,cur)}</strong></span>`:''}
       </div>
       <div class="pay-input-row">
         <label>A pagar:</label>
         <input type="text" inputmode="numeric" id="pay-inp-${i}" value="${currentAmt>0?fmtN(currentAmt):''}"
-          placeholder="${fmtN(Math.round(minClamped))}"
+          placeholder="${fmtN(minClamped)}"
           oninput="onPayInput(${i},'${c.name}')"
           onfocus="this.select()">
-        <button style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:11px;color:var(--muted);"
-          onclick="setPayMin(${i},'${c.name}',${Math.round(minClamped)})">Mín</button>
+        <button style="padding:5px 9px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:11px;color:var(--muted);"
+          onclick="setPayAmt(${i},'${c.name}',${minClamped})">Mín</button>
+        ${ppAmt>0?`<button style="padding:5px 9px;border-radius:6px;border:1px solid var(--accent);background:#eff6ff;cursor:pointer;font-size:11px;color:var(--accent);font-weight:600;"
+          onclick="setPayAmt(${i},'${c.name}',${ppAmt})">Mi plan</button>`:''}
       </div>
-      ${belowMin?`<div class="pay-min-warn">⚠️ Monto menor al mínimo sugerido (${fmt(minClamped,cur)}). Se acumularán intereses y posible mora.</div>`:''}
+      ${belowMin?`<div class="pay-min-warn">⚠️ Monto menor al mínimo requerido (${fmt(minClamped,cur)}). Se acumularán intereses y posible mora.</div>`:''}
     </div>`;
   }).join('');
-  document.getElementById('pay-cards-list').innerHTML=html;
+
+  document.getElementById('pay-cards-list').innerHTML = `
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <span style="font-size:12px;color:var(--muted);align-self:center;">Cargar desde:</span>
+      ${hasPP?`<button onclick="loadPayFromSource('plan')" style="padding:6px 13px;border-radius:6px;border:1px solid var(--accent);background:#eff6ff;color:var(--accent);cursor:pointer;font-size:12px;font-weight:600;">📋 Mi Plan de Pago</button>`:''}
+      <button onclick="loadPayFromSource('suggested')" style="padding:6px 13px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:12px;color:var(--text);">⚡ Sugerido (${SNAMES[strategy]})</button>
+      <button onclick="loadPayFromSource('mins')" style="padding:6px 13px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:12px;color:var(--text);">🔵 Solo mínimos</button>
+      <button onclick="loadPayFromSource('clear')" style="padding:6px 13px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:12px;color:var(--muted);">✕ Limpiar</button>
+    </div>
+    ${html}`;
   updatePayTotals();
 }
 
@@ -685,9 +726,9 @@ function onPayInput(i, name) {
     if(el) el.remove();
   }
 }
-function setPayMin(i, name, minAmt) {
-  payAmounts[name] = minAmt;
-  document.getElementById('pay-inp-'+i).value = fmtN(minAmt);
+function setPayAmt(i, name, amt) {
+  payAmounts[name] = amt;
+  document.getElementById('pay-inp-'+i).value = fmtN(amt);
   updatePayTotals();
 }
 function updatePayTotals() {
@@ -1123,8 +1164,6 @@ function renderAlerts(){
 // ════════════════════════════════════════
 // PLAN DE PAGO
 // ════════════════════════════════════════
-let ppAmounts = {}; // user's custom amounts keyed by card name
-
 function renderPlanPago() {
   // Sync budget input
   const ppBudgetEl = document.getElementById('pp-budget');
