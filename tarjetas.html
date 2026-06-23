@@ -207,6 +207,7 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
   <div class="tabs">
     <button class="tab active" onclick="showPage('dashboard',this)">Dashboard</button>
     <button class="tab" onclick="showPage('strategy',this)">Estrategia</button>
+    <button class="tab" onclick="showPage('planpago',this)">Plan de Pago</button>
     <button class="tab" onclick="showPage('simulator',this)">Simulador</button>
     <button class="tab" onclick="showPage('projection',this)">Proyección</button>
     <button class="tab" onclick="showPage('alerts',this)">Alertas <span class="alert-dot" id="alert-dot"></span></button>
@@ -243,6 +244,61 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
   <div class="strat-desc" id="strat-desc"></div>
   <div class="plan-table-wrap" id="plan-table-wrap"></div>
 </div>
+
+<!-- PLAN DE PAGO -->
+<div class="page" id="page-planpago">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+    <div class="section-title" style="margin:0;">Plan de Pago</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <span style="font-size:12px;color:var(--muted);">Presupuesto:</span>
+      <input type="text" inputmode="numeric" id="pp-budget" placeholder="Ej: 6.000.000"
+        style="width:150px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 11px;font-family:'JetBrains Mono';font-size:13px;"
+        oninput="fmtModalInput(this);renderPlanPago()">
+      <button onclick="window.print()" style="padding:7px 16px;border-radius:7px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-family:'DM Sans';font-size:13px;display:flex;align-items:center;gap:5px;">🖨️ Imprimir</button>
+    </div>
+  </div>
+  <div id="pp-content"></div>
+</div>
+
+<style>
+/* ── PLAN DE PAGO ── */
+.pp-table { width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.pp-table th { background:var(--surface2); color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.6px; padding:10px 14px; text-align:left; border-bottom:1px solid var(--border); font-weight:600; }
+.pp-table td { padding:10px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
+.pp-table tr:last-child td { border-bottom:none; }
+.pp-table tr:hover td { background:var(--surface2); }
+.pp-name { font-weight:600; font-size:14px; display:flex; align-items:center; gap:7px; }
+.pp-input { width:140px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:7px; padding:7px 10px; font-family:'JetBrains Mono'; font-size:13px; font-weight:600; text-align:right; }
+.pp-input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(37,99,235,.08); }
+.pp-input.over { border-color:var(--success); background:#f0fdf4; }
+.pp-input.under { border-color:var(--danger); background:#fef2f2; }
+.pp-suggested { font-family:'JetBrains Mono'; font-size:13px; font-weight:600; color:var(--accent); }
+.pp-minimo { font-family:'JetBrains Mono'; font-size:12px; color:var(--muted); }
+.pp-deuda { font-family:'JetBrains Mono'; font-size:12px; color:var(--danger); }
+.pp-diff { font-family:'JetBrains Mono'; font-size:11px; }
+.pp-diff.pos { color:var(--success); }
+.pp-diff.neg { color:var(--danger); }
+.pp-total-row td { background:var(--surface2); font-weight:700; border-top:2px solid var(--border); }
+.pp-budget-bar { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin-bottom:14px; display:flex; gap:24px; flex-wrap:wrap; align-items:center; }
+.pp-bstat { display:flex; flex-direction:column; gap:2px; }
+.pp-bstat .pbl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+.pp-bstat .pbv { font-family:'JetBrains Mono'; font-size:16px; font-weight:700; }
+.pp-warn { background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; font-size:12px; color:var(--danger); margin-bottom:12px; }
+.pp-ok   { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px 14px; font-size:12px; color:var(--success); margin-bottom:12px; }
+
+/* ── PRINT STYLES ── */
+@media print {
+  header, .tabs, #pp-budget, button, .no-print { display:none !important; }
+  body { background:#fff; }
+  .page { display:none !important; }
+  #page-planpago { display:block !important; padding:10px; max-width:100%; }
+  .pp-table th { background:#f0f0f0 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .pp-table tr:nth-child(even) td { background:#fafafa !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .pp-input { border:1px solid #999 !important; background:#fff !important; }
+  .section-title { font-size:18px !important; }
+  .pp-budget-bar { display:none; }
+}
+</style>
 
 <!-- SIMULATOR -->
 <div class="page" id="page-simulator">
@@ -292,7 +348,7 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
 </div>
 
 <!-- MODAL: ADD/EDIT CARD -->
-<div class="modal-overlay" id="modal-overlay" onclick="closeModalOuter(event)">
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal(this.id)">
   <div class="modal">
     <h2 id="modal-title">Nueva Tarjeta</h2>
     <div class="frow">
@@ -326,7 +382,7 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
 </div>
 
 <!-- MODAL: REGISTRAR PAGOS -->
-<div class="modal-overlay" id="pay-modal-overlay" onclick="closeModalOuter2(event)">
+<div class="modal-overlay" id="pay-modal-overlay" onclick="if(event.target===this)closeModal(this.id)">
   <div class="modal" style="width:600px;">
     <h2>💳 Registrar Pagos</h2>
     <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Ingresá cuánto vas a pagar en cada tarjeta. Al confirmar, los montos se descuentan de la deuda actual.</p>
@@ -342,13 +398,11 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
 
 <div class="toast" id="toast"></div>
 
-<script type="module">
-// ════════════════════════════════════════
-// FIREBASE SETUP
-// ════════════════════════════════════════
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
+<!-- Firebase Compat SDK (classic scripts, no module required) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyBSf_g5FgZRZa9KqOpq3ZuJatOi3wwSGhg",
   authDomain: "finanzas-famly.firebaseapp.com",
@@ -358,9 +412,11 @@ const firebaseConfig = {
   messagingSenderId: "928329252641",
   appId: "1:928329252641:web:3709a2ee5d43f738088860"
 };
-const fbApp = initializeApp(firebaseConfig);
-const db = getDatabase(fbApp);
+firebase.initializeApp(firebaseConfig);
 const DATA_PATH = 'tarjetas_control/v1';
+</script>
+
+<script>
 
 // ════════════════════════════════════════
 // STATE
@@ -407,7 +463,7 @@ function fmtInput(n) { return new Intl.NumberFormat('es-PY').format(Math.round(n
 function pushToFirebase() {
   const payload = { cards, budget, strategy, updatedAt: Date.now() };
   _lastWrite = JSON.stringify({cards, budget, strategy});
-  set(ref(db, DATA_PATH), payload).catch(e => console.warn('Firebase write error:', e));
+  firebase.database().ref(DATA_PATH).set(payload).catch(e => console.warn('Firebase write error:', e));
   // Always mirror to localStorage as offline backup
   localStorage.setItem('cc4_cards', JSON.stringify(cards));
   localStorage.setItem('cc4_budget', String(budget));
@@ -420,7 +476,7 @@ const saveStrat = () => pushToFirebase();
 // ════════════════════════════════════════
 // CONNECTION STATUS
 // ════════════════════════════════════════
-onValue(ref(db, '.info/connected'), snap => {
+firebase.database().ref('.info/connected').on('value', snap => {
   const online = snap.val() === true;
   const dot = document.getElementById('conn-dot');
   const lbl = document.getElementById('conn-lbl');
@@ -451,10 +507,11 @@ function showPage(p,btn) {
   document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   if(btn) btn.classList.add('active');
-  if(p==='strategy') renderStrategy();
+  if(p==='strategy')   renderStrategy();
   if(p==='projection') renderProjection();
-  if(p==='simulator') renderSim();
-  if(p==='alerts') renderAlerts();
+  if(p==='simulator')  renderSim();
+  if(p==='alerts')     renderAlerts();
+  if(p==='planpago')   renderPlanPago();
 }
 
 // ════════════════════════════════════════
@@ -765,8 +822,8 @@ function deleteCard(i){
 // ════════════════════════════════════════
 function simMonths(bgt, strat, maxM=120){
   let state=cards.map(c=>({
-    name:c.name,rate:c.rate||0,debt:c.debt,currency:c.currency||'PYG',
-    color:c.color,gastos:monthlyGastos(c),interestAccum:0,paidAccum:0,
+    name:c.name, rate:c.rate||0, debt:c.debt, currency:c.currency||'PYG',
+    color:c.color, gastos:monthlyGastos(c), interestAccum:0, gastosAccum:0, paidAccum:0,
     minPay:c.minPay||0,
   }));
   const history=[];
@@ -775,54 +832,68 @@ function simMonths(bgt, strat, maxM=120){
     const totalDebt=state.reduce((s,c)=>s+c.debt,0);
     if(totalDebt<1){months=m;break;}
     months=m+1;
-    const interests=state.map(s=>s.debt>0?s.debt*(s.rate/100/12):0);
 
-    // Minimum payment per card = max(interest + gastos, declared minPay), capped at total debt+interest
-    const mins=state.map((s,i)=>s.debt>0?Math.min(Math.max(interests[i]+s.gastos,s.minPay),s.debt+interests[i]):0);
-    const totalMin=mins.reduce((a,b)=>a+b,0);
+    // 1. Calculate charges for this month (interest + fixed costs added to debt)
+    const interests = state.map(s => s.debt>0 ? s.debt*(s.rate/100/12) : 0);
+    const gastosCargo = state.map(s => s.debt>0 ? s.gastos : 0); // gastos only charged if card has debt
+
+    // 2. Gross debt before payment = current debt + interest + gastos
+    const grossDebt = state.map((s,i) => s.debt + interests[i] + gastosCargo[i]);
+
+    // 3. Minimum payment = max(declared minPay, interest+gastos), capped at gross debt
+    const mins = state.map((s,i) => s.debt>0
+      ? Math.min(Math.max(interests[i]+gastosCargo[i], s.minPay), grossDebt[i])
+      : 0);
+    const totalMin = mins.reduce((a,b)=>a+b,0);
 
     let payments;
-
     if(totalMin >= bgt) {
-      // Budget doesn't cover minimums — scale ALL payments down proportionally so total = budget exactly
+      // Budget insufficient — scale all payments down proportionally
       const scale = bgt / totalMin;
       payments = mins.map(m => m * scale);
     } else {
-      // Budget covers all minimums — distribute the EXTRA by strategy
       payments = [...mins];
       const extra = bgt - totalMin;
-
       if(strat === 'proportional') {
-        // Distribute extra proportionally to debt size
         const td = state.reduce((s,c)=>s+c.debt,0);
         state.forEach((s,i) => {
           if(s.debt > 0 && td > 0) payments[i] += extra * (s.debt / td);
         });
       } else {
         let remaining = extra;
-        let sorted=state.map((_,i)=>i).filter(i=>state[i].debt>0);
+        let sorted = state.map((_,i)=>i).filter(i=>state[i].debt>0);
         if(strat==='avalanche') sorted.sort((a,b)=>state[b].rate-state[a].rate);
         else if(strat==='snowball') sorted.sort((a,b)=>state[a].debt-state[b].debt);
         else if(strat==='hybrid') sorted.sort((a,b)=>(state[b].debt*state[b].rate)-(state[a].debt*state[a].rate));
         for(const i of sorted){
-          const maxAdd=Math.max(0,state[i].debt+interests[i]-payments[i]);
-          const add=Math.min(remaining,maxAdd);
-          payments[i]+=add; remaining-=add;
+          const maxAdd = Math.max(0, grossDebt[i] - payments[i]);
+          const add = Math.min(remaining, maxAdd);
+          payments[i] += add; remaining -= add;
           if(remaining<=0) break;
         }
       }
     }
 
-    const byCard=state.map((s,i)=>{
-      const int=interests[i];
-      const pay=Math.min(payments[i],s.debt+int);
-      const newDebt=Math.max(0,s.debt+int-pay);
-      s.interestAccum+=int; s.paidAccum+=pay; s.debt=newDebt;
-      return {name:s.name,debt:s.debt,interest:int,payment:pay,newDebt,currency:s.currency};
+    // 4. Apply charges and payments → new debt
+    const byCard = state.map((s,i) => {
+      const int     = interests[i];
+      const gastos  = gastosCargo[i];
+      const pay     = Math.min(payments[i], grossDebt[i]);
+      const newDebt = Math.max(0, grossDebt[i] - pay);
+      s.interestAccum += int;
+      s.gastosAccum   += gastos;
+      s.paidAccum     += pay;
+      s.debt = newDebt;
+      return {name:s.name, debt:s.debt, interest:int, gastos, payment:pay, newDebt, currency:s.currency};
     });
-    history.push({month:m+1,totalDebt:state.reduce((s,c)=>s+c.debt,0),byCard});
+    history.push({month:m+1, totalDebt:state.reduce((s,c)=>s+c.debt,0), byCard});
   }
-  return {months,history,totalInterest:state.reduce((s,c)=>s+c.interestAccum,0),finalState:state};
+  return {
+    months, history,
+    totalInterest: state.reduce((s,c)=>s+c.interestAccum,0),
+    totalGastos:   state.reduce((s,c)=>s+c.gastosAccum,0),
+    finalState: state
+  };
 }
 
 // ════════════════════════════════════════
@@ -861,7 +932,7 @@ function renderStrategy(){
   const bestInt=Math.min(...results.map(r=>r.totalInterest));
   document.getElementById('strat-compare').innerHTML=results.map(r=>{
     const isBest=Math.abs(r.totalInterest-bestInt)<1;
-    return `<div class="sc-card ${isBest?'best':''}" onclick="setStrat('${r.s}',document.querySelector('[data-s=${r.s}]'))">
+    return `<div class="sc-card ${isBest?'best':''}" onclick="setStrat('${r.s}',this)">
       <div class="sc-name">${SNAMES[r.s]}</div>
       <div class="sc-int">${fmt(r.totalInterest)}</div>
       <div class="sc-mo">${r.months} meses para cancelar todo</div>
@@ -948,15 +1019,17 @@ function renderSim(){
       <td>${fin} meses</td>
       <td>${fd.toLocaleDateString('es-PY',{month:'short',year:'numeric'})}</td>
       <td class="yellow">${fmt(fs?fs.interestAccum:0,c.currency)}</td>
+      <td class="blue">${fmt(fs?fs.gastosAccum:0,c.currency)}</td>
     </tr>`;
   }).join('');
   document.getElementById('sim-table').innerHTML=`
-    <table><thead><tr><th>Tarjeta</th><th>Deuda Actual</th><th>Meses</th><th>Cancela aprox.</th><th>Intereses totales</th></tr></thead>
+    <table><thead><tr><th>Tarjeta</th><th>Deuda Actual</th><th>Meses</th><th>Cancela aprox.</th><th>Intereses acum.</th><th>Gastos fijos acum.</th></tr></thead>
     <tbody>${rows}</tbody>
     <tfoot><tr style="background:var(--surface2)">
       <td style="font-weight:700">TOTAL</td><td class="red" style="font-family:'JetBrains Mono'">${fmt(maxDebt)}</td>
       <td style="font-weight:700">${months} m</td><td></td>
       <td class="yellow" style="font-family:'JetBrains Mono'">${fmt(totalInterest)}</td>
+      <td class="blue" style="font-family:'JetBrains Mono'">${fmt(finalState.reduce((s,c)=>s+(c.gastosAccum||0),0))}</td>
     </tr></tfoot></table>`;
   // Suggestion
   const allRes=['avalanche','snowball','hybrid','proportional'].map(s=>({s,...simMonths(simBgt,s)}));
@@ -989,12 +1062,15 @@ function renderProjection(){
     document.getElementById('month-table').innerHTML='';
     return;
   }
-  const {months,history,totalInterest}=simMonths(budget,strategy);
+  const {months,history,totalInterest,totalGastos}=simMonths(budget,strategy);
   const initDebt=cards.reduce((s,c)=>s+c.debt,0);
   const fd=new Date(); fd.setMonth(fd.getMonth()+months);
+  const totalCost = totalInterest + totalGastos;
   document.getElementById('proj-summary').innerHTML=`
     <div class="proj-card"><div class="pval blue">${months}</div><div class="plbl">Meses totales</div></div>
-    <div class="proj-card"><div class="pval red">${fmt(totalInterest)}</div><div class="plbl">Total intereses</div></div>
+    <div class="proj-card"><div class="pval red">${fmt(totalInterest)}</div><div class="plbl">Total intereses pagados</div></div>
+    <div class="proj-card"><div class="pval yellow">${fmt(totalGastos)}</div><div class="plbl">Total gastos fijos acum.</div></div>
+    <div class="proj-card"><div class="pval red">${fmt(totalCost)}</div><div class="plbl">Costo total (int + gastos)</div></div>
     <div class="proj-card"><div class="pval">${fmt(initDebt)}</div><div class="plbl">Deuda inicial</div></div>
     <div class="proj-card"><div class="pval yellow">${fmt(budget*months)}</div><div class="plbl">Total desembolsado</div></div>
     <div class="proj-card"><div class="pval green" style="font-size:13px">${fd.toLocaleDateString('es-PY',{month:'long',year:'numeric'})}</div><div class="plbl">Cancelación estimada</div></div>
@@ -1045,34 +1121,141 @@ function renderAlerts(){
 }
 
 // ════════════════════════════════════════
-// EXPOSE TO GLOBAL SCOPE (required for inline HTML handlers with type="module")
+// PLAN DE PAGO
 // ════════════════════════════════════════
-window.showPage        = showPage;
-window.openAddModal    = openAddModal;
-window.openEditModal   = openEditModal;
-window.openPayModal    = openPayModal;
-window.openPayModalSingle = openPayModalSingle;
-window.closeModal      = closeModal;
-window.closeModalOuter = closeModalOuter;
-window.closeModalOuter2= closeModalOuter2;
-window.saveCard        = saveCard;
-window.deleteCard      = deleteCard;
-window.addGastoRow     = addGastoRow;
-window.removeGastoRow  = removeGastoRow;
-window.fmtModalInput   = fmtModalInput;
-window.onGastoAmtInput = onGastoAmtInput;
-window.onBudgetChange  = onBudgetChange;
-window.setStrat        = setStrat;
-window.renderSim       = renderSim;
-window.onPayInput      = onPayInput;
-window.setPayMin       = setPayMin;
-window.confirmPayments = confirmPayments;
-window.renderDashboard = renderDashboard;
-window.renderStrategy  = renderStrategy;
-window.renderProjection= renderProjection;
-window.renderAlerts    = renderAlerts;
+let ppAmounts = {}; // user's custom amounts keyed by card name
 
-// ════════════════════════════════════════
+function renderPlanPago() {
+  // Sync budget input
+  const ppBudgetEl = document.getElementById('pp-budget');
+  const ppBudget = parseFormattedNum(ppBudgetEl?.value) || budget || 0;
+
+  // Get suggested payments from current strategy (1 month simulation)
+  const {history} = simMonths(ppBudget || budget, strategy, 1);
+  const suggested = {};
+  if(history.length) history[0].byCard.forEach(p => { suggested[p.name] = p.payment; });
+
+  // Initialize ppAmounts for new cards
+  cards.forEach(c => { if(ppAmounts[c.name] === undefined) ppAmounts[c.name] = 0; });
+
+  const totalSuggested = Object.values(suggested).reduce((s,v)=>s+v,0);
+  const totalUser = cards.reduce((s,c)=>s+(ppAmounts[c.name]||0),0);
+  const totalMin = cards.reduce((s,c)=>{
+    const int = c.debt*monthlyRate(c);
+    const gastos = monthlyGastos(c);
+    return s + Math.min(Math.max(int+gastos, c.minPay||0), c.debt+int+gastos);
+  },0);
+  const diffUser = ppBudget - totalUser;
+
+  const statusHtml = totalUser > 0
+    ? diffUser < -1000
+      ? `<div class="pp-warn">⚠️ Estás planificando pagar <strong>${fmt(Math.abs(diffUser))}</strong> más de tu presupuesto.</div>`
+      : diffUser > 1000
+        ? `<div class="pp-ok">✅ Te sobran <strong>${fmt(diffUser)}</strong> del presupuesto.</div>`
+        : `<div class="pp-ok">✅ Usás el presupuesto casi exacto.</div>`
+    : '';
+
+  const now = new Date();
+  const monthName = now.toLocaleDateString('es-PY',{month:'long',year:'numeric'});
+
+  const rows = cards.map((c,i) => {
+    const int = c.debt * monthlyRate(c);
+    const gastos = monthlyGastos(c);
+    const minReq = Math.min(Math.max(int+gastos, c.minPay||0), c.debt+int+gastos);
+    const sugg = suggested[c.name] || 0;
+    const userAmt = ppAmounts[c.name] || 0;
+    const color = c.color || COLORS[i%COLORS.length];
+    const cur = c.currency || 'PYG';
+    const diffVsMin = userAmt > 0 ? userAmt - minReq : null;
+    const diffVsSugg = userAmt > 0 ? userAmt - sugg : null;
+    const inputClass = userAmt > sugg+1 ? 'over' : userAmt > 0 && userAmt < minReq-1 ? 'under' : '';
+
+    return `<tr>
+      <td><div class="pp-name"><span class="cdot" style="background:${color}"></span>${c.name}</div></td>
+      <td><div class="pp-deuda">${fmt(c.debt,cur)}</div></td>
+      <td><div class="pp-minimo">${fmt(minReq,cur)}</div></td>
+      <td><div class="pp-suggested">${fmt(sugg,cur)}</div></td>
+      <td>
+        <input type="text" inputmode="numeric" class="pp-input ${inputClass}"
+          id="ppinp-${i}" value="${userAmt>0?fmtN(userAmt):''}"
+          placeholder="${fmtN(Math.round(sugg))}"
+          oninput="onPPInput(${i},'${c.name}')"
+          onfocus="this.select()">
+        ${userAmt>0&&diffVsMin!==null?`<div class="pp-diff ${diffVsMin>=0?'pos':'neg'}" style="margin-top:3px;">${diffVsMin>=0?'+':'-'}${fmt(Math.abs(diffVsMin),cur)} vs mín</div>`:''}
+      </td>
+      <td><div class="pp-name" style="justify-content:flex-end;"><span style="font-family:'JetBrains Mono';font-size:13px;font-weight:700;color:${userAmt>0?(userAmt<minReq-1?'var(--danger)':'var(--text)'):'var(--muted)'}">${userAmt>0?fmt(userAmt,cur):'—'}</span><span class="cdot" style="background:${color};margin-left:5px;margin-right:0;"></span>${c.name}</div></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('pp-content').innerHTML = `
+    <div class="pp-budget-bar no-print">
+      <div class="pp-bstat"><div class="pbl">Presupuesto</div><div class="pbv">${fmt(ppBudget)}</div></div>
+      <div class="pp-bstat"><div class="pbl">Mínimos totales</div><div class="pbv" style="color:var(--warn)">${fmt(totalMin)}</div></div>
+      <div class="pp-bstat"><div class="pbl">Sugerido total</div><div class="pbv" style="color:var(--accent)">${fmt(totalSuggested)}</div></div>
+      <div class="pp-bstat"><div class="pbl">Tu plan total</div><div class="pbv" style="color:${totalUser>ppBudget+1?'var(--danger)':'var(--success)'}">${totalUser>0?fmt(totalUser):'—'}</div></div>
+      <div class="pp-bstat"><div class="pbl">Diferencia</div><div class="pbv" style="color:${diffUser>=0?'var(--success)':'var(--danger)'}">${totalUser>0?(diffUser>=0?'+':'')+fmt(diffUser):'—'}</div></div>
+      <button onclick="autoFillSuggested()" style="padding:7px 14px;border-radius:7px;border:1px solid var(--accent);background:#eff6ff;color:var(--accent);cursor:pointer;font-family:'DM Sans';font-size:12px;font-weight:600;">⚡ Usar sugeridos</button>
+      <button onclick="clearPP()" style="padding:7px 14px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:'DM Sans';font-size:12px;">✕ Limpiar</button>
+    </div>
+    ${statusHtml}
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">📅 ${monthName.charAt(0).toUpperCase()+monthName.slice(1)} — Estrategia: ${SNAMES[strategy]}</div>
+    <div style="overflow-x:auto;">
+    <table class="pp-table">
+      <thead><tr>
+        <th>Tarjeta</th>
+        <th>Deuda Actual</th>
+        <th>Mínimo Requerido</th>
+        <th>Sugerido (${SNAMES[strategy]})</th>
+        <th>Mi Pago</th>
+        <th style="text-align:right;">Monto · Tarjeta</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr class="pp-total-row">
+          <td colspan="2">TOTAL</td>
+          <td style="font-family:'JetBrains Mono'">${fmt(totalMin)}</td>
+          <td style="font-family:'JetBrains Mono';color:var(--accent)">${fmt(totalSuggested)}</td>
+          <td style="font-family:'JetBrains Mono';color:${totalUser>ppBudget+1?'var(--danger)':'var(--text)'}">${totalUser>0?fmt(totalUser):'—'}</td>
+          <td style="font-family:'JetBrains Mono';text-align:right;">${totalUser>0?fmt(totalUser):'—'}</td>
+        </tr>
+      </tfoot>
+    </table>
+    </div>`;
+}
+
+function onPPInput(i, name) {
+  const inp = document.getElementById('ppinp-'+i);
+  const raw = inp.value.replace(/\./g,'').replace(/[^\d]/g,'');
+  const n = parseInt(raw,10)||0;
+  ppAmounts[name] = n;
+  if(n>0) {
+    const pos = inp.selectionStart, oldLen = inp.value.length;
+    inp.value = new Intl.NumberFormat('es-PY').format(n);
+    try { inp.setSelectionRange(pos+(inp.value.length-oldLen), pos+(inp.value.length-oldLen)); } catch(e){}
+  }
+  // Update just the totals and diff without full re-render to keep focus
+  const ppBudgetEl = document.getElementById('pp-budget');
+  const ppBudget = parseFormattedNum(ppBudgetEl?.value) || budget || 0;
+  const totalUser = cards.reduce((s,c)=>s+(ppAmounts[c.name]||0),0);
+  const diffUser = ppBudget - totalUser;
+  // Re-render fully to update status and diffs
+  renderPlanPago();
+  // Restore focus
+  setTimeout(()=>{ const el=document.getElementById('ppinp-'+i); if(el){el.focus();el.selectionStart=el.selectionEnd=el.value.length;} },10);
+}
+
+function autoFillSuggested() {
+  const ppBudgetEl = document.getElementById('pp-budget');
+  const ppBudget = parseFormattedNum(ppBudgetEl?.value) || budget || 0;
+  const {history} = simMonths(ppBudget||budget, strategy, 1);
+  if(history.length) history[0].byCard.forEach(p => { ppAmounts[p.name] = Math.round(p.payment); });
+  renderPlanPago();
+}
+
+function clearPP() {
+  cards.forEach(c => { ppAmounts[c.name] = 0; });
+  renderPlanPago();
+}
 // INIT — Firebase real-time listener
 // ════════════════════════════════════════
 const DEFAULT_CARDS = [
@@ -1092,7 +1275,7 @@ const DEFAULT_CARDS = [
 document.getElementById('cards-grid').innerHTML = `<div class="empty-state"><div class="icon">🔄</div><p>Conectando con Firebase...</p></div>`;
 
 // Real-time listener — fires immediately with current data, then on every change
-onValue(ref(db, DATA_PATH), snap => {
+firebase.database().ref(DATA_PATH).on('value', snap => {
   const data = snap.val();
 
   if(!_fbReady) {
