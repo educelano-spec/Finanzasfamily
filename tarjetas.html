@@ -206,6 +206,7 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
   </div>
   <div class="tabs">
     <button class="tab active" onclick="showPage('dashboard',this)">Dashboard</button>
+    <button class="tab" onclick="showPage('resumen',this)">Resumen</button>
     <button class="tab" onclick="showPage('strategy',this)">Estrategia</button>
     <button class="tab" onclick="showPage('planpago',this)">Plan de Pago</button>
     <button class="tab" onclick="showPage('simulator',this)">Simulador</button>
@@ -221,6 +222,15 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer;}
   </div>
   <div class="summary-bar" id="summary-bar"></div>
   <div class="cards-grid" id="cards-grid"></div>
+</div>
+
+<!-- RESUMEN -->
+<div class="page" id="page-resumen">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+    <div class="section-title" style="margin:0;">Resumen de Tarjetas</div>
+    <button onclick="window.print()" style="padding:7px 16px;border-radius:7px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-family:'DM Sans';font-size:13px;">🖨️ Imprimir</button>
+  </div>
+  <div id="resumen-content"></div>
 </div>
 
 <!-- STRATEGY -->
@@ -512,6 +522,7 @@ function showPage(p,btn) {
   if(p==='simulator')  renderSim();
   if(p==='alerts')     renderAlerts();
   if(p==='planpago')   renderPlanPago();
+  if(p==='resumen')    renderResumen();
 }
 
 // ════════════════════════════════════════
@@ -1295,6 +1306,70 @@ function clearPP() {
   cards.forEach(c => { ppAmounts[c.name] = 0; });
   renderPlanPago();
 }
+
+// ════════════════════════════════════════
+// RESUMEN
+// ════════════════════════════════════════
+function renderResumen() {
+  if(!cards.length) {
+    document.getElementById('resumen-content').innerHTML = `<div class="empty-state"><div class="icon">💳</div><p>Agregá tarjetas desde el Dashboard.</p></div>`;
+    return;
+  }
+  const totalLimit = cards.reduce((s,c) => s+c.limit, 0);
+  const totalDebt  = cards.reduce((s,c) => s+c.debt,  0);
+  const totalAvail = cards.reduce((s,c) => s+Math.max(0, c.limit-c.debt), 0);
+  const usoPct     = totalLimit>0 ? totalDebt/totalLimit : 0;
+
+  const rows = cards.map((c,i) => {
+    const avail = Math.max(0, c.limit - c.debt);
+    const pct   = c.limit>0 ? Math.min(c.debt/c.limit, 1) : 0;
+    const over  = c.debt > c.limit;
+    const color = c.color || COLORS[i%COLORS.length];
+    const cur   = c.currency || 'PYG';
+    return `<tr>
+      <td class="nc"><span class="cdot" style="background:${color}"></span>${c.name}</td>
+      <td style="font-family:'JetBrains Mono';font-size:12px;">${fmt(c.limit,cur)}</td>
+      <td style="font-family:'JetBrains Mono';font-size:12px;color:var(--danger);font-weight:600;">${fmt(c.debt,cur)}${over?' ⚠️':''}</td>
+      <td style="font-family:'JetBrains Mono';font-size:12px;color:var(--success);font-weight:600;">${fmt(avail,cur)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;min-width:80px;">
+            <div style="height:100%;width:${pct*100}%;background:${colorFill(pct)};border-radius:3px;"></div>
+          </div>
+          <span style="font-size:11px;color:var(--muted);white-space:nowrap;">${Math.round(pct*100)}%${over?' ⚠️':''}</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('resumen-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:20px;">
+      <div class="stat-card"><div class="lbl">Línea Total</div><div class="val">${fmtM(totalLimit)}</div><div class="sub">${fmt(totalLimit)}</div></div>
+      <div class="stat-card"><div class="lbl">Deuda Total</div><div class="val red">${fmtM(totalDebt)}</div><div class="sub">${fmt(totalDebt)}</div></div>
+      <div class="stat-card"><div class="lbl">Disponible Total</div><div class="val green">${fmtM(totalAvail)}</div><div class="sub">${fmt(totalAvail)}</div></div>
+      <div class="stat-card"><div class="lbl">Uso Total</div><div class="val ${usoPct>.9?'red':usoPct>.7?'yellow':'green'}">${Math.round(usoPct*100)}%</div><div class="sub">${usoPct>.9?'⚠️ Muy alto':usoPct>.7?'Moderado':'Saludable'}</div></div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="ptable">
+        <thead><tr>
+          <th>Tarjeta</th>
+          <th>Línea de Crédito</th>
+          <th>Deuda Actual</th>
+          <th>Disponible</th>
+          <th>Uso</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr style="background:var(--surface2);">
+          <td class="nc" style="font-weight:700;">TOTAL</td>
+          <td style="font-family:'JetBrains Mono';font-size:12px;font-weight:700;">${fmt(totalLimit)}</td>
+          <td style="font-family:'JetBrains Mono';font-size:12px;font-weight:700;color:var(--danger);">${fmt(totalDebt)}</td>
+          <td style="font-family:'JetBrains Mono';font-size:12px;font-weight:700;color:var(--success);">${fmt(totalAvail)}</td>
+          <td style="font-size:12px;font-weight:700;color:${usoPct>.9?'var(--danger)':usoPct>.7?'var(--warn)':'var(--success)'};">${Math.round(usoPct*100)}%</td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+}
+
 // INIT — Firebase real-time listener
 // ════════════════════════════════════════
 const DEFAULT_CARDS = [
